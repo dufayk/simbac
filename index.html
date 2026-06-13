@@ -266,6 +266,39 @@ tr:last-child td{border-bottom:none}
       <div class="card-title">État des modules</div>
       <div id="module-status-grid"></div>
     </div>
+
+    <!-- Synchronisation GitHub -->
+    <div class="card" id="card-gh-sync">
+      <div class="card-title">☁️ Synchronisation GitHub</div>
+      <div class="alert alert-info" style="margin-bottom:14px;font-size:12px">
+        Les données parsées sont sauvegardées dans un repo GitHub privé et rechargées automatiquement sur n'importe quel appareil. Partagez un token <em>lecture seule</em> avec un tiers pour lui donner accès aux résultats.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div class="form-group">
+          <label style="font-size:12px">Token GitHub (lecture+écriture — vous)</label>
+          <div style="display:flex;gap:6px">
+            <input type="password" id="gh-token-rw" placeholder="ghp_…" style="flex:1;padding:6px 10px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px">
+            <button class="btn btn-sm" onclick="ghSaveToken('rw')" style="white-space:nowrap">Enregistrer</button>
+          </div>
+          <div style="font-size:11px;color:var(--g500);margin-top:4px">Permissions requises : <code>repo</code> sur <code>dufayk/simbac-data</code></div>
+        </div>
+        <div class="form-group">
+          <label style="font-size:12px">Token lecture seule (à partager avec un tiers)</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="gh-token-ro" placeholder="ghp_… (fine-grained read-only)" style="flex:1;padding:6px 10px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px">
+            <button class="btn btn-sm" onclick="ghSaveToken('ro')" style="white-space:nowrap">Enregistrer</button>
+          </div>
+          <div style="font-size:11px;color:var(--g500);margin-top:4px">
+            Générer sur <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:var(--primary)">github.com/settings/tokens</a> → Fine-grained → Contents: Read-only sur <code>simbac-data</code>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="ghPushAll()" id="btn-gh-push" style="display:none">⬆ Envoyer vers GitHub</button>
+        <button class="btn btn-sm" onclick="ghPullYear()" id="btn-gh-pull">⬇ Charger depuis GitHub</button>
+        <div id="gh-sync-status" style="font-size:12px;color:var(--g500)">—</div>
+      </div>
+    </div>
   </div>
 
   <!-- ── PANELS PREMIÈRES ── -->
@@ -531,11 +564,164 @@ const SUB_TABS = {
 const STORE = {
   k:(y,s) => s ? `bac_${y}.${s}` : `bac_${y}`,
   get:(y,s) => { try{return JSON.parse(localStorage.getItem(STORE.k(y,s)))}catch{return null} },
-  set:(y,s,d) => localStorage.setItem(STORE.k(y,s), JSON.stringify(d)),
+  set:(y,s,d) => { localStorage.setItem(STORE.k(y,s), JSON.stringify(d)); GH.queueSave(y,s,d); },
   del:(y,s) => localStorage.removeItem(STORE.k(y,s)),
   getYear:() => localStorage.getItem('bac_meta.lastYear'),
   setYear:y  => localStorage.setItem('bac_meta.lastYear', y),
 };
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  GITHUB SYNC                                                 ║
+// ╚══════════════════════════════════════════════════════════════╝
+const GH = {
+  DATA_REPO: 'dufayk/simbac-data',
+  _queue: [],   // {annee, key, data}
+  _saving: false,
+
+  cfg()     { try{return JSON.parse(localStorage.getItem('gh_sync_cfg')||'{}')}catch{return{}} },
+  saveCfg(c){ localStorage.setItem('gh_sync_cfg', JSON.stringify(c)); },
+  token()   { return this.cfg().rw || ''; },
+  roToken() { return this.cfg().ro || ''; },
+
+  // Base64 UTF-8 safe
+  enc: str => btoa(unescape(encodeURIComponent(str))),
+  dec: b64 => decodeURIComponent(escape(atob(b64.replace(/\n/g,'')))),
+
+  async _fetch(path, opts={}, token) {
+    const t = token || this.token();
+    if (!t) return null;
+    try {
+      const r = await fetch(`https://api.github.com/repos/${this.DATA_REPO}/contents/${path}`, {
+        ...opts,
+        headers: { Authorization:`token ${t}`, Accept:'application/vnd.github.v3+json',
+                   'Content-Type':'application/json', ...(opts.headers||{}) }
+      });
+      if (!r.ok) return null;
+      return r.json();
+    } catch { return null; }
+  },
+
+  async getFileSha(path) {
+    const j = await this._fetch(path);
+    return j ? { sha: j.sha, content: this.dec(j.content) } : null;
+  },
+
+  async putFile(path, content, sha) {
+    const body = { message:`sync ${path}`, content: this.enc(content) };
+    if (sha) body.sha = sha;
+    return this._fetch(path, { method:'PUT', body: JSON.stringify(body) });
+  },
+
+  // Sauvegarde immédiate d'une clé
+  async save(annee, key, data) {
+    if (!this.token()) return false;
+    const path = `${annee}/${key}.json`;
+    const existing = await this.getFileSha(path);
+    const ok = await this.putFile(path, JSON.stringify(data), existing?.sha);
+    return !!ok;
+  },
+
+  // File d'attente avec debounce (évite flood API)
+  _pending: {},
+  _saveTimer: null,
+  queueSave(annee, key, data) {
+    if (!this.token()) return;
+    this._pending[`${annee}/${key}`] = { annee, key, data };
+    clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => this._flushQueue(), 2000);
+  },
+  async _flushQueue() {
+    if (this._saving) return;
+    const items = Object.values(this._pending);
+    if (!items.length) return;
+    this._pending = {};
+    this._saving = true;
+    ghStatus('⏳ Synchronisation…');
+    let ok = 0;
+    for (const {annee, key, data} of items) {
+      if (await this.save(annee, key, data)) ok++;
+    }
+    this._saving = false;
+    ghStatus(ok === items.length
+      ? `✅ Synchronisé (${ok} clé${ok>1?'s':''}) — ${new Date().toLocaleTimeString()}`
+      : `⚠️ ${ok}/${items.length} clés synchronisées`);
+    document.getElementById('btn-gh-push').style.display = 'none';
+  },
+
+  // Charger toutes les clés d'une année depuis GitHub
+  async loadYear(annee, token) {
+    const t = token || this.token() || this.roToken();
+    if (!t) { ghStatus('❌ Aucun token configuré'); return false; }
+    ghStatus('⏳ Chargement depuis GitHub…');
+    const dir = await this._fetch(annee, {}, t);
+    if (!Array.isArray(dir)) { ghStatus('⚠️ Aucune donnée GitHub pour cette année'); return false; }
+    let loaded = 0;
+    for (const f of dir) {
+      if (!f.name.endsWith('.json')) continue;
+      const key = f.name.replace('.json','');
+      try {
+        const fileJ = await this._fetch(`${annee}/${f.name}`, {}, t);
+        if (fileJ) {
+          const data = JSON.parse(this.dec(fileJ.content));
+          localStorage.setItem(STORE.k(annee, key), JSON.stringify(data));
+          loaded++;
+        }
+      } catch {}
+    }
+    ghStatus(`✅ ${loaded} clé${loaded>1?'s':''} chargée${loaded>1?'s':''} depuis GitHub`);
+    return loaded > 0;
+  }
+};
+
+function ghStatus(msg) {
+  const el = document.getElementById('gh-sync-status');
+  if (el) el.textContent = msg;
+}
+
+function ghSaveToken(type) {
+  const val = (document.getElementById(`gh-token-${type}`)?.value||'').trim();
+  if (!val) return;
+  const cfg = GH.cfg();
+  cfg[type] = val;
+  GH.saveCfg(cfg);
+  document.getElementById(`gh-token-${type}`).value = '';
+  document.getElementById(`gh-token-${type}`).placeholder = val.slice(0,8)+'…';
+  ghStatus(`✅ Token ${type==='rw'?'lecture+écriture':'lecture seule'} enregistré`);
+  if (type === 'rw') document.getElementById('btn-gh-push').style.display = '';
+}
+
+async function ghPullYear() {
+  if (!S.annee) { ghStatus('⚠️ Sélectionnez d\'abord une année'); return; }
+  const loaded = await GH.loadYear(S.annee);
+  if (loaded) { setYear(S.annee); }  // recharge l'état depuis localStorage
+}
+
+async function ghPushAll() {
+  if (!S.annee) return;
+  const keys = ['csv_premieres','csv_bac','csv_ccct','xls_charPrem','xls_charPremSTMG',
+                 'xls_charTermTG','xls_charTermSTMG','xls_speAban','p1c_spesProm',
+                 't1_nouveaux','t1_grandOral','meta'];
+  ghStatus('⏳ Envoi en cours…');
+  let ok = 0;
+  for (const key of keys) {
+    const data = STORE.get(S.annee, key);
+    if (data !== null && (Array.isArray(data) ? data.length : Object.keys(data||{}).length)) {
+      if (await GH.save(S.annee, key, data)) ok++;
+    }
+  }
+  ghStatus(`✅ ${ok} clé${ok>1?'s':''} envoyée${ok>1?'s':''} — ${new Date().toLocaleTimeString()}`);
+}
+
+function ghSyncInit() {
+  const cfg = GH.cfg();
+  if (cfg.rw) {
+    document.getElementById('gh-token-rw').placeholder = cfg.rw.slice(0,8)+'… (enregistré)';
+    document.getElementById('btn-gh-push').style.display = '';
+  }
+  if (cfg.ro) {
+    document.getElementById('gh-token-ro').placeholder = cfg.ro.slice(0,8)+'… (enregistré)';
+  }
+}
 
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  STATE                                                       ║
@@ -576,6 +762,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sessionStorage.getItem('bac_adm_ok') === '1') {
     S.isAdmin = true; updateAdminUI();
   }
+
+  // GitHub Sync — init tokens affichés
+  ghSyncInit();
 
   // Restaurer année
   const y = STORE.getYear();
