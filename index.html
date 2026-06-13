@@ -4795,64 +4795,217 @@ const T0_FIELDS = [
   {code:'LP006', label:'Mathématiques (STMG)'},
 ];
 
-function renderT0() {
-  const el=document.getElementById('t0-body'); if(!el) return;
-  const allTerm=[...S.charTermTG,...S.charTermSTMG];
+// ── Matching inverse : est-ce qu'un élève de A (SIEC) se trouve dans la liste Terminale ? ──
+function t0isInTerm(s, termList) {
+  const kn = norm(s.nom), kp = norm(s.prenom||'');
+  const exact = kn + '_' + kp;
+  return termList.some(t => {
+    const tn = norm(t.nom), tp = norm(t.prenom||'');
+    if (tn + '_' + tp === exact) return true;
+    if (tn === kn && tp.slice(0,3) === kp.slice(0,3) && kp.length >= 3) return true;
+    return false;
+  });
+}
 
+function renderT0() {
+  const el = document.getElementById('t0-body'); if (!el) return;
+  const allTerm = [...S.charTermTG, ...S.charTermSTMG];
+
+  // Gardes
+  if (!S.premieres.length && !allTerm.length) {
+    el.innerHTML = renderStubHTML('🔄','Mise à jour promo',
+      'Compare les élèves du fichier A (SIEC Premières) avec les fichiers F+G (Terminales Charlemagne) pour détecter les départs et les nouveaux arrivants.',
+      'Fichiers A (SIEC Premières) + F ou G (Charlemagne Terminales)');
+    return;
+  }
+  if (!S.premieres.length) {
+    el.innerHTML = renderStubHTML('🔄','Mise à jour promo',
+      'Chargez le fichier A pour comparer les élèves de Première avec ceux de Terminale.', 'Fichier A (SIEC Premières)');
+    return;
+  }
   if (!allTerm.length) {
-    el.innerHTML=`<div class="alert alert-warning">Chargez d'abord le fichier Charlemagne Terminale dans T1 · Simulation pour voir les élèves non matchés.</div>`;
+    el.innerHTML = renderStubHTML('🔄','Mise à jour promo',
+      'Chargez les fichiers F et/ou G pour comparer la promo Terminale avec la Première.', 'Fichiers F et/ou G (Charlemagne Terminales)');
     return;
   }
 
-  // Identifier les non matchés (pas dans S.premieres ET pas encore dans S.nouveaux)
-  const nonMatchesSansNotes = allTerm.filter(t => {
-    const {prem}=t1Match(t, S.premieres);
-    return !prem;
-  });
+  const departsConf  = STORE.get(S.annee,'t0_departs')  || {};
+  const ignoresArr   = STORE.get(S.annee,'t0_ignores')  || [];
+  const ignoresSet   = new Set(ignoresArr);
 
-  const avecNotes  = nonMatchesSansNotes.filter(t => S.nouveaux[t.id]);
-  const sansNotes  = nonMatchesSansNotes.filter(t => !S.nouveaux[t.id]);
+  // ─── DÉPARTS : élèves de A absents de F+G ───────────────────
+  const departsAll     = S.premieres.filter(s => !t0isInTerm(s, allTerm));
+  const departsAConf   = departsAll.filter(s => departsConf[s.id]);
+  const departsEnAtt   = departsAll.filter(s => !departsConf[s.id] && !ignoresSet.has(s.id));
+  const departsIgnored = departsAll.filter(s => ignoresSet.has(s.id));
 
-  let h = '';
+  // ─── NOUVEAUX : élèves de F+G absents de A ──────────────────
+  const nouveaux       = allTerm.filter(t => !t1Match(t, S.premieres).prem);
+  const nvAvecNotes    = nouveaux.filter(t =>  S.nouveaux[t.id]);
+  const nvSansNotes    = nouveaux.filter(t => !S.nouveaux[t.id]);
 
-  if (!nonMatchesSansNotes.length) {
-    h+=`<div class="alert alert-success">✓ Tous les élèves sont matchés avec le Fichier A — aucun nouveau à saisir.</div>`;
+  // KPIs
+  let h = `<div class="kpi-row">
+    <div class="kpi"><div class="kpi-val">${S.premieres.length}</div><div class="kpi-label">Élèves<br>Fichier A</div></div>
+    <div class="kpi"><div class="kpi-val">${allTerm.length}</div><div class="kpi-label">Élèves<br>Fichiers F+G</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:${departsEnAtt.length?'var(--danger)':'var(--success)'}">${departsEnAtt.length}</div><div class="kpi-label">Départs à<br>confirmer</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--g400)">${departsAConf.length}</div><div class="kpi-label">Départs<br>confirmés</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:${nvSansNotes.length?'var(--warning)':'var(--success)'}">${nvSansNotes.length}</div><div class="kpi-label">Nouveaux sans<br>notes 1ère</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--success)">${nvAvecNotes.length}</div><div class="kpi-label">Nouveaux avec<br>notes 1ère</div></div>
+  </div>`;
+
+  // ══════════════════════════════════════════════════════
+  //  SECTION DÉPARTS
+  // ══════════════════════════════════════════════════════
+  h += `<div class="card">
+    <div class="card-title">⬅ Départs — Élèves de A absents de F+G</div>`;
+
+  if (!departsAll.length) {
+    h += `<div class="alert alert-success">✓ Tous les élèves du fichier A sont retrouvés en Terminale.</div>`;
   } else {
-    h+=`<div class="alert alert-info">
-      <strong>${nonMatchesSansNotes.length}</strong> élève(s) sans dossier 1ère ·
-      <span style="color:var(--success)">${avecNotes.length} notes saisies</span> ·
-      <span style="color:var(--warning)">${sansNotes.length} en attente</span>
-      ${avecNotes.length?`<button class="btn btn-primary btn-sm" style="margin-left:12px" onclick="t0RefreshT1()">↺ Relancer simulation T1</button>`:''}
-    </div>`;
+    if (departsEnAtt.length) {
+      h += `<div class="alert alert-warning" style="margin-bottom:12px">
+        <strong>${departsEnAtt.length}</strong> élève(s) de Première ne figurent pas dans les fichiers Terminale.
+        Confirmez leur départ ou ignorez s'il s'agit d'une erreur de correspondance de nom.
+      </div>`;
+      departsEnAtt.forEach(s => {
+        const sid = s.id.replace(/['"\\]/g,'');
+        const sn  = (s.nom||'').replace(/'/g,"\\'");
+        const sp  = (s.prenom||'').replace(/'/g,"\\'");
+        const sc  = (s.classe||'').replace(/'/g,"\\'");
+        h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border:1px solid var(--g200);border-radius:var(--radius);margin-bottom:6px;background:var(--g50)">
+          <div>
+            <strong>${s.nom||'—'} ${s.prenom||''}</strong>
+            <span class="badge badge-gray" style="margin-left:8px">${s.classe||'—'}</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-danger btn-sm" onclick="t0ConfirmDepart('${sid}','${sn}','${sp}','${sc}')">
+              ✓ A quitté l'établissement
+            </button>
+            <button class="btn btn-sm" style="background:var(--g200);color:var(--g700)" onclick="t0IgnoreDepart('${sid}')">
+              Ignorer
+            </button>
+          </div>
+        </div>`;
+      });
+    }
+
+    if (departsAConf.length) {
+      h += `<div style="margin-top:14px">
+        <div style="font-size:12px;font-weight:600;color:var(--g500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+          Départs confirmés — exclus des calculs
+        </div>`;
+      departsAConf.forEach(s => {
+        const sid = s.id.replace(/['"\\]/g,'');
+        const info = departsConf[s.id];
+        h += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--g100)">
+          <span class="badge badge-red">Parti</span>
+          <span style="font-size:13px">${s.nom||'—'} ${s.prenom||''}</span>
+          <span style="font-size:11px;color:var(--g400)">${s.classe||''}</span>
+          ${info?.confirmedAt?`<span style="font-size:11px;color:var(--g400)">le ${new Date(info.confirmedAt).toLocaleDateString('fr-FR')}</span>`:''}
+          <button class="btn btn-sm" style="background:var(--g200);color:var(--g700);margin-left:auto;font-size:11px" onclick="t0UndoDepart('${sid}')">
+            Annuler
+          </button>
+        </div>`;
+      });
+      h += `</div>`;
+    }
+
+    if (departsIgnored.length) {
+      h += `<details style="margin-top:10px"><summary style="font-size:12px;color:var(--g500);cursor:pointer">
+        ${departsIgnored.length} élève(s) ignoré(s) (faux-positifs)
+      </summary><div style="padding:8px 0">`;
+      departsIgnored.forEach(s => {
+        const sid = s.id.replace(/['"\\]/g,'');
+        h += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <span style="font-size:13px">${s.nom||'—'} ${s.prenom||''}</span>
+          <span style="font-size:11px;color:var(--g400)">${s.classe||''}</span>
+          <button class="btn btn-sm" style="background:var(--g200);color:var(--g700);font-size:11px" onclick="t0UndoIgnore('${sid}')">
+            Restaurer
+          </button>
+        </div>`;
+      });
+      h += `</div></details>`;
+    }
   }
+  h += `</div>`;
 
-  // Cartes élèves
-  nonMatchesSansNotes.forEach(t => {
-    const nv=S.nouveaux[t.id];
-    const done=!!nv;
-    h+=`<div class="card" style="border-left:4px solid ${done?'var(--success)':'var(--warning)'}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div>
-          <strong>${t.nom} ${t.prenom}</strong>
-          <span class="badge badge-gray" style="margin-left:8px">${t.classe}</span>
-          ${done?'<span class="badge badge-green" style="margin-left:6px">✓ Notes saisies</span>':'<span class="badge badge-orange" style="margin-left:6px">En attente</span>'}
-        </div>
-        <div style="display:flex;gap:8px">
-          <label class="btn btn-primary btn-sm" style="cursor:pointer" title="OCR depuis relevé Cyclade PDF">
-            📄 PDF Cyclade
-            <input type="file" accept=".pdf,image/*" style="display:none"
-              onchange="t0OCR('${t.id}','${t.nom}','${t.prenom}',this)">
-          </label>
-          <button class="btn btn-secondary btn-sm" onclick="t0OpenManual('${t.id}','${t.nom}','${t.prenom}',${t.is_stmg?'true':'false'})">✎ Saisie manuelle</button>
-          ${done?`<button class="btn btn-danger btn-sm" onclick="t0Delete('${t.id}')">🗑</button>`:''}
-        </div>
-      </div>
-      <div id="t0-status-${t.id}"></div>
-      ${done ? t0NotesResume(nv) : ''}
+  // ══════════════════════════════════════════════════════
+  //  SECTION NOUVEAUX
+  // ══════════════════════════════════════════════════════
+  h += `<div class="card">
+    <div class="card-title">➕ Nouveaux — Élèves de F+G absents de A (arrivants)</div>`;
+
+  if (!nouveaux.length) {
+    h += `<div class="alert alert-success">✓ Tous les élèves de Terminale ont un dossier Première dans le fichier A.</div>`;
+  } else {
+    h += `<div class="alert alert-info" style="margin-bottom:14px">
+      <strong>${nouveaux.length}</strong> élève(s) arrivant(s) sans notes de Première ·
+      <span style="color:var(--success)">${nvAvecNotes.length} notes saisies</span> ·
+      <span style="color:var(--warning)">${nvSansNotes.length} en attente</span>
+      ${nvAvecNotes.length?`<button class="btn btn-primary btn-sm" style="margin-left:12px" onclick="t0RefreshT1()">↺ Relancer simulation T1</button>`:''}
     </div>`;
-  });
 
-  el.innerHTML=h;
+    nouveaux.forEach(t => {
+      const nv   = S.nouveaux[t.id];
+      const done = !!nv;
+      const sid  = t.id.replace(/['"\\]/g,'');
+      const sn   = (t.nom||'').replace(/'/g,"\\'");
+      const sp   = (t.prenom||'').replace(/'/g,"\\'");
+      h += `<div class="card" style="border-left:4px solid ${done?'var(--success)':'var(--warning)'};margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;${done?'margin-bottom:8px':''}">
+          <div>
+            <strong>${t.nom||'—'} ${t.prenom||''}</strong>
+            <span class="badge badge-gray" style="margin-left:8px">${t.classe||'—'}</span>
+            ${done?'<span class="badge badge-green" style="margin-left:6px">✓ Notes saisies</span>':'<span class="badge badge-orange" style="margin-left:6px">En attente</span>'}
+          </div>
+          <div style="display:flex;gap:8px">
+            <label class="btn btn-primary btn-sm" style="cursor:pointer" title="OCR depuis relevé Cyclade PDF">
+              📄 PDF Cyclade
+              <input type="file" accept=".pdf,image/*" style="display:none"
+                onchange="t0OCR('${sid}','${sn}','${sp}',this)">
+            </label>
+            <button class="btn btn-secondary btn-sm" onclick="t0OpenManual('${sid}','${sn}','${sp}',${t.is_stmg?'true':'false'})">
+              ✎ Saisie manuelle
+            </button>
+            ${done?`<button class="btn btn-danger btn-sm" onclick="t0Delete('${sid}')">🗑</button>`:''}
+          </div>
+        </div>
+        <div id="t0-status-${t.id}"></div>
+        ${done ? t0NotesResume(nv) : ''}
+      </div>`;
+    });
+  }
+  h += `</div>`;
+
+  el.innerHTML = h;
+}
+
+function t0ConfirmDepart(id, nom, prenom, classe) {
+  const d = STORE.get(S.annee,'t0_departs') || {};
+  d[id] = { nom, prenom, classe, confirmedAt: new Date().toISOString() };
+  STORE.set(S.annee,'t0_departs', d);
+  renderT0();
+}
+
+function t0UndoDepart(id) {
+  const d = STORE.get(S.annee,'t0_departs') || {};
+  delete d[id];
+  STORE.set(S.annee,'t0_departs', d);
+  renderT0();
+}
+
+function t0IgnoreDepart(id) {
+  const arr = STORE.get(S.annee,'t0_ignores') || [];
+  if (!arr.includes(id)) arr.push(id);
+  STORE.set(S.annee,'t0_ignores', arr);
+  renderT0();
+}
+
+function t0UndoIgnore(id) {
+  const arr = (STORE.get(S.annee,'t0_ignores') || []).filter(i => i !== id);
+  STORE.set(S.annee,'t0_ignores', arr);
+  renderT0();
 }
 
 function t0NotesResume(notes) {
