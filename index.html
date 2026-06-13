@@ -4795,16 +4795,12 @@ const T0_FIELDS = [
   {code:'LP006', label:'Mathématiques (STMG)'},
 ];
 
-// ── Matching inverse : est-ce qu'un élève de A (SIEC) se trouve dans la liste Terminale ? ──
+// ── Matching inverse : est-ce qu'un élève de A (SIEC) se trouve dans la liste Terminale ?
+// Réutilise t1MatchList (même algo que pour les Nouveaux) pour garantir la cohérence. ──
 function t0isInTerm(s, termList) {
-  const kn = norm(s.nom), kp = norm(s.prenom||'');
-  const exact = kn + '_' + kp;
-  return termList.some(t => {
-    const tn = norm(t.nom), tp = norm(t.prenom||'');
-    if (tn + '_' + tp === exact) return true;
-    if (tn === kn && tp.slice(0,3) === kp.slice(0,3) && kp.length >= 3) return true;
-    return false;
-  });
+  // On passe l'élève SIEC en tant que "charElem" et la liste Term en tant que "list"
+  // t1MatchList cherche norm(charElem.nom+'_'+charElem.prenom) dans la map de la list
+  return t1MatchList({ nom: s.nom, prenom: s.prenom||'' }, termList).prem !== null;
 }
 
 function renderT0() {
