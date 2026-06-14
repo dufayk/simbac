@@ -1396,12 +1396,14 @@ async function parseCharlemagne(file, type) {
         // Trouver la ligne d'en-têtes (contient au moins 3 matières connues)
         let hdrIdx = -1;
         const KNOWN = ['MATHEMATIQUES','MATHS','HISTOIRE','ANGLAIS','PHILOSOPHIE','PHYSIQUE','SCIENCES',
-                       'FRAN','SVT','NSI','SES','HGGSP','HLP','EMC','LVA','LVB','EPS','ANGLAIS'];
-        for (let i=0; i<Math.min(8,rows.length); i++) {
+                       'FRAN','SVT','NSI','SES','HGGSP','HLP','EMC','LVA','LVB','EPS'];
+        let bestHits = 0;
+        for (let i=0; i<Math.min(10,rows.length); i++) {
           const rowStr = rows[i].map(v=>String(v).toUpperCase()).join('|');
           const hits = KNOWN.filter(k => rowStr.includes(k)).length;
-          if (hits >= 1) { hdrIdx = i; break; }
+          if (hits > bestHits) { bestHits = hits; hdrIdx = i; }
         }
+        if (bestHits < 1) hdrIdx = -1;
         if (hdrIdx < 0) throw new Error('En-têtes de matières non trouvés dans le fichier Excel.');
 
         const headers = rows[hdrIdx].map(v => String(v).trim());
