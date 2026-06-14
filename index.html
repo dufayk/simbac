@@ -835,7 +835,7 @@ const FILE_DEFS = [
     accept:'.csv,.txt', type:'csv',
     unlocks:['Bac-Point Première','P-Comparaison'],
     parse: raw => parseCSVSIECPrem(raw),
-    storeKey:'premieres', stateKey:'premieres',
+    storeKey:'csv_premieres', stateKey:'premieres',
   },
   {
     id:'B', key:'csv_bac', label:'Fichier B — CSV SIEC Bac',
@@ -3685,7 +3685,7 @@ function p2cRenderTable(data) {
   };
 
   // en-têtes colspan
-  const BLU='background:#eff6ff', GRN='background:#f0fdf4', YEL='background:#fefce8', PUR='background:#fdf4ff';
+  const BLU='background:#eff6ff;color:var(--g900)', GRN='background:#f0fdf4;color:var(--g900)', YEL='background:#fefce8;color:var(--g900)', PUR='background:#fdf4ff;color:var(--g900)';
   const BLU2='background:#f8faff', GRN2='background:#f0fff8', YEL2='background:#fffef0', PUR2='background:#faf5ff';
 
   let h = `<table style="width:100%;border-collapse:collapse;font-size:12px">
