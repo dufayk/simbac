@@ -3585,12 +3585,13 @@ function renderP2C() {
     const p2b_char = charS ? calcP2b(charS, stmg).total : null;
     const delta_p2b = p2b_char != null ? Math.round((p2b_siec - p2b_char)*10)/10 : null;
 
-    // Épreuves anticipées — Français
-    const fr_char       = charS ? (charS.notes['FR'] ?? charS.notes['T001'] ?? null) : null;
-    const fr_ecrit_siec = s.notes['T001'] ?? null;
-    const fr_oral_siec  = s.notes['T002'] ?? null;
-    const delta_fr_ecrit = (fr_char!=null && fr_ecrit_siec!=null) ? Math.round((fr_ecrit_siec-fr_char)*100)/100 : null;
-    const delta_fr_oral  = (fr_char!=null && fr_oral_siec!=null)  ? Math.round((fr_oral_siec-fr_char)*100)/100  : null;
+    // Français — CC moy année (fichier D), épreuves anticipées (fichier A)
+    const fr_cc    = charS ? (charS.notes['FR'] ?? null) : null;
+    const fr_ecrit = s.notes['T001'] ?? null;
+    const fr_oral  = s.notes['T002'] ?? null;
+    const fr_moy_ea = (fr_ecrit!=null && fr_oral!=null) ? (fr_ecrit+fr_oral)/2
+                    : (fr_ecrit ?? fr_oral);
+    const delta_fr = (fr_moy_ea!=null && fr_cc!=null) ? Math.round((fr_moy_ea-fr_cc)*100)/100 : null;
 
     // (2027+) Mathématiques
     let maths_siec=null, maths_char=null, delta_maths=null;
@@ -3612,7 +3613,7 @@ function renderP2C() {
       displayName: ((s.nom||'')+(s.prenom?' '+s.prenom:'')).trim(),
       classeShort: classeAbbr(s.classe) || s.classe || '',
       p2b_siec, p2b_char, delta_p2b,
-      fr_char, fr_ecrit_siec, fr_oral_siec, delta_fr_ecrit, delta_fr_oral,
+      fr_cc, fr_ecrit, fr_oral, delta_fr,
       maths_siec, maths_char, delta_maths,
       p2a_total, p2e_total, delta_p2ae
     };
@@ -3625,8 +3626,7 @@ function renderP2C() {
   const kpiAvg = (arr, key) => {
     const v = arr.filter(d=>d[key]!=null); return v.length ? v.reduce((a,d)=>a+d[key],0)/v.length : null;
   };
-  const avgDeltaFrE  = kpiAvg(matched,'delta_fr_ecrit');
-  const avgDeltaFrO  = kpiAvg(matched,'delta_fr_oral');
+  const avgDeltaFr   = kpiAvg(matched,'delta_fr');
   const avgDeltaP2b  = kpiAvg(matched,'delta_p2b');
   const avgDeltaP2ae = kpiAvg(matched,'delta_p2ae');
 
@@ -3642,8 +3642,7 @@ function renderP2C() {
     <div class="kpi-row">
       <div class="kpi"><div class="kpi-val">${matched.length}</div><div class="kpi-label">Appariés</div></div>
       ${unmatched>0?`<div class="kpi"><div class="kpi-val" style="color:var(--warning)">${unmatched}</div><div class="kpi-label">Non appariés</div></div>`:''}
-      <div class="kpi"><div class="kpi-val">${fmtKpi(avgDeltaFrE)}</div><div class="kpi-label">Δ moy Fr écrit</div></div>
-      <div class="kpi"><div class="kpi-val">${fmtKpi(avgDeltaFrO)}</div><div class="kpi-label">Δ moy Fr oral</div></div>
+      <div class="kpi"><div class="kpi-val">${fmtKpi(avgDeltaFr)}</div><div class="kpi-label">Δ moy Français</div></div>
       <div class="kpi"><div class="kpi-val">${fmtKpi(avgDeltaP2b,1,'pts')}</div><div class="kpi-label">Δ moy CC /${maxPts}</div></div>
       ${hasP2a&&hasP2e&&avgDeltaP2ae!=null?`<div class="kpi"><div class="kpi-val">${fmtKpi(avgDeltaP2ae,0,'pts')}</div><div class="kpi-label">Δ moy P2e−P2a</div></div>`:''}
     </div>
@@ -3694,17 +3693,15 @@ function p2cRenderTable(data) {
       <th rowspan="2" style="padding:6px 8px;text-align:left;border:1px solid var(--g200);min-width:60px;max-width:90px">Nom</th>
       <th rowspan="2" style="padding:6px 8px;text-align:left;border:1px solid var(--g200);min-width:50px;max-width:80px">Prénom</th>
       <th rowspan="2" style="padding:6px 8px;text-align:center;border:1px solid var(--g200)">Cl.</th>
-      <th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${BLU}">Français écrit</th>
-      <th colspan="2" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${BLU}">Français oral</th>
+      <th colspan="4" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${BLU}">Français</th>
       ${reforme?`<th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${GRN}">Mathématiques</th>`:''}
       <th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${YEL}">CC Première /${maxPts}</th>
       ${hasP2a&&hasP2e?`<th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${PUR}">Bac /2000</th>`:''}
     </tr>
     <tr style="background:var(--g100);font-size:11px;color:var(--g700)">
-      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">Char CC</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">SIEC</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">Δ</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">SIEC</th>
+      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">CC moy</th>
+      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">Écrit</th>
+      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">Oral</th>
       <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">Δ</th>
       ${reforme?`<th style="padding:4px 6px;border:1px solid var(--g200);${GRN}">Char CC</th>
       <th style="padding:4px 6px;border:1px solid var(--g200);${GRN}">SIEC</th>
@@ -3725,11 +3722,10 @@ function p2cRenderTable(data) {
       <td style="padding:4px 8px;border:1px solid var(--g200);color:var(--g900);max-width:90px;overflow:hidden;text-overflow:ellipsis">${d.s.nom||'—'}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);color:var(--g900);max-width:80px;overflow:hidden;text-overflow:ellipsis">${d.s.prenom||''}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center">${d.classeShort}</td>
-      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmt(d.fr_char)}</td>
-      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmt(d.fr_ecrit_siec)}</td>
-      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmtD(d.delta_fr_ecrit)}</td>
-      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmt(d.fr_oral_siec)}</td>
-      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmtD(d.delta_fr_oral)}</td>
+      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmt(d.fr_cc)}</td>
+      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmt(d.fr_ecrit)}</td>
+      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmt(d.fr_oral)}</td>
+      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmtD(d.delta_fr)}</td>
       ${reforme?`<td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${GRN2}">${fmt(d.maths_char)}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${GRN2}">${fmt(d.maths_siec)}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${GRN2}">${fmtD(d.delta_maths)}</td>`:''}
@@ -3763,15 +3759,14 @@ function p2cExportCSV() {
   const hasP2e  = !!(window._p2eData?.length);
   const fv = v => v==null?'':typeof v==='number'?v.toFixed(2).replace('.',','):v;
   const cols = ['Nom','Prénom','Classe','Apparié',
-    'Fr CC (Char)','Fr écrit (SIEC)','Δ Fr écrit','Fr oral (SIEC)','Δ Fr oral',
+    'Fr CC moy (D)','Fr écrit (A)','Fr oral (A)','Δ Fr',
     ...(reforme?['Maths CC (Char)','Maths (SIEC)','Δ Maths']:[]),
     `CC Char /${maxPts}`,`CC SIEC /${maxPts}`,'Δ CC',
     ...(hasP2a&&hasP2e?['P2a /2000','P2e /2000','Δ P2ae']:[])
   ];
   const rows = [cols.join(';'), ...data.map(d => [
     d.s.nom, d.s.prenom, d.classeShort, d.matched?'oui':'non',
-    fv(d.fr_char), fv(d.fr_ecrit_siec), fv(d.delta_fr_ecrit),
-    fv(d.fr_oral_siec), fv(d.delta_fr_oral),
+    fv(d.fr_cc), fv(d.fr_ecrit), fv(d.fr_oral), fv(d.delta_fr),
     ...(reforme?[fv(d.maths_char),fv(d.maths_siec),fv(d.delta_maths)]:[]),
     fv(d.p2b_char), fv(d.p2b_siec), fv(d.delta_p2b),
     ...(hasP2a&&hasP2e?[fv(d.p2a_total),fv(d.p2e_total),fv(d.delta_p2ae)]:[])
