@@ -3584,6 +3584,10 @@ function renderP2C() {
   });
   const getIsStmg = s => stmgSet.has(s.id) || stmgSet.has(norm((s.prenom||'')+(s.nom||''))) || /stmg/i.test(s.classe||'');
 
+  // — Auto-compute P2a/P2e si pas encore visités —
+  if (!(window._p2aData||[]).length) renderP2A();
+  if (!(window._p2eData||[]).length) renderP2E();
+
   // — Lookups P2a et P2e (si déjà rendus) —
   const p2aLookup = {};
   (window._p2aData||[]).forEach(d => {
