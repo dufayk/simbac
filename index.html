@@ -3584,6 +3584,9 @@ function renderP2C() {
     charLookup[e.id] = e;
     charLookup[norm((e.prenom||'')+(e.nom||''))] = e;
   });
+  window._p2cCharLookup = charLookup;
+  window._p2cLinks = window._p2cLinks || {};
+  window._p2cCharList = [...S.charPrem].sort((a,b) => a.nom.localeCompare(b.nom));
 
   // — STMG set —
   const stmgSet = new Set();
@@ -3619,7 +3622,8 @@ function renderP2C() {
     const stmg = getIsStmg(s);
     const kPN  = norm((s.prenom||'')+(s.nom||''));
     const kNP  = norm((s.nom||'')+(s.prenom||''));
-    const charS = charLookup[s.id] || charLookup[kPN] || charLookup[kNP];
+    const manualKey = (window._p2cLinks||{})[s.id];
+    const charS = (manualKey ? charLookup[manualKey] : null) || charLookup[s.id] || charLookup[kPN] || charLookup[kNP];
 
     // CC Première /620 ou /660
     const p2b_siec = calcP2b(s, stmg).total;
@@ -3650,7 +3654,7 @@ function renderP2C() {
     const delta_p2ae = (p2a_total!=null && p2e_total!=null) ? p2e_total-p2a_total : null;
 
     return {
-      s, matched:!!charS,
+      s, siecId: s.id, matched:!!charS,
       displayName: ((s.nom||'')+(s.prenom?' '+s.prenom:'')).trim(),
       classeShort: classeAbbr(s.classe) || s.classe || '',
       p2b_siec, p2b_char, delta_p2b,
@@ -3780,10 +3784,18 @@ function p2cRebuildTable() {
   </thead>
   <tbody id="p2c-tbody">`;
 
+  const charOpts = (window._p2cCharList||[]).map(e =>
+    `<option value="${e.id}">${e.nom}</option>`).join('');
+
   sorted.forEach(d => {
-    const op = d.matched ? '' : 'opacity:0.55;font-style:italic';
+    const op = d.matched ? '' : 'opacity:0.8';
+    const linkSel = d.matched ? '' :
+      `<div style="margin-top:3px"><select onchange="p2cManualLink('${d.siecId}',this.value)"
+        style="font-size:10px;width:100%;padding:1px 2px;border:1px solid var(--g300);border-radius:3px;color:var(--g700)">
+        <option value="">🔗 lier à Charlemagne…</option>${charOpts}
+      </select></div>`;
     h += `<tr style="${op}" data-classe="${d.classeShort}" data-nom="${(d.s.nom||'').toUpperCase()}">
-      <td style="padding:4px 8px;border:1px solid var(--g200);color:var(--g900);max-width:90px;overflow:hidden;text-overflow:ellipsis">${d.s.nom||'—'}</td>
+      <td style="padding:4px 8px;border:1px solid var(--g200);color:var(--g900);max-width:90px;overflow:hidden;text-overflow:ellipsis">${d.s.nom||'—'}${linkSel}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);color:var(--g900);max-width:80px;overflow:hidden;text-overflow:ellipsis">${d.s.prenom||''}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center">${d.classeShort}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmt(d.fr_cc)}</td>
@@ -3811,6 +3823,13 @@ function p2cSortBy(key) {
   window._p2cSort = {key, dir: cur.key===key ? -cur.dir : 1};
   p2cRebuildTable();
   p2cFilter();
+}
+
+function p2cManualLink(siecId, charKey) {
+  if (!charKey) return;
+  window._p2cLinks = window._p2cLinks || {};
+  window._p2cLinks[siecId] = charKey;
+  renderP2C();
 }
 
 function p2cFilter() {
