@@ -3679,26 +3679,7 @@ function renderP2C() {
 
   const classes = [...new Set(data.map(d=>d.classeShort).filter(Boolean))].sort();
 
-  // Debug block
-  const dbg = window._charPremDebug || {};
-  const sampleFrCC = data.slice(0,3).map(d=>`${d.displayName}: fr_cc=${d.fr_cc}`).join(' | ');
-  const sampleChar = S.charPrem.slice(0,2).map(e=>`${e.nom}→FR=${e.notes['FR']}`).join(' | ');
-  const s0 = S.premieres[0];
-  const s0kPN = s0 ? norm((s0.prenom||'')+(s0.nom||'')) : '?';
-  const s0kNP = s0 ? norm((s0.nom||'')+(s0.prenom||'')) : '?';
-  const charKeys = Object.keys(charLookup).slice(0,4).join(' | ');
-  const s0match = charLookup[s0?.id] ? 'id' : charLookup[s0kPN] ? 'kPN' : charLookup[s0kNP] ? 'kNP' : 'NONE';
-  const dbgBlock = `<div style="margin-bottom:10px;padding:8px 12px;background:#fef9c3;border:1px solid #fde047;border-radius:6px;font-size:11px;font-family:monospace">
-    <b>Debug</b> charPrem=${S.charPrem.length} | matched=${matched.length}<br>
-    hdrIdx=${dbg.hdrIdx} | firstNotes: ${dbg.firstNotes||'—'}<br>
-    charSample: ${sampleChar||'—'}<br>
-    charLookupKeys(4): ${charKeys}<br>
-    SIEC[0]: nom="${s0?.nom}" prenom="${s0?.prenom}" id="${s0?.id}"<br>
-    kPN="${s0kPN}" kNP="${s0kNP}" → match: ${s0match}
-  </div>`;
-
   el.innerHTML = `
-    ${dbgBlock}
     <div class="kpi-row">
       <div class="kpi"><div class="kpi-val">${matched.length}</div><div class="kpi-label">Appariés</div></div>
       ${unmatched>0?`<div class="kpi"><div class="kpi-val" style="color:var(--warning)">${unmatched}</div><div class="kpi-label">Non appariés</div></div>`:''}
@@ -3731,6 +3712,15 @@ function renderP2C() {
 
 function p2cRenderTable(data) {
   const wrap = document.getElementById('p2c-table'); if(!wrap) return;
+  window._p2cData = data;
+  window._p2cSort = window._p2cSort || {key:'nom', dir:1};
+  p2cRebuildTable();
+}
+
+function p2cRebuildTable() {
+  const wrap = document.getElementById('p2c-table'); if(!wrap) return;
+  const data = window._p2cData || [];
+  const {key, dir} = window._p2cSort;
   const reforme = parseInt(S.annee) >= 2027;
   const maxPts  = reforme ? 660 : 620;
   const hasP2a  = !!(window._p2aData?.length);
@@ -3739,44 +3729,58 @@ function p2cRenderTable(data) {
   const fmt = (v,dec=2) => v==null?'—':v.toFixed(dec);
   const fmtD = (v,dec=2,thr=0.3) => {
     if(v==null) return '<span style="color:var(--g400)">—</span>';
-    const s=v>0?'+':''; const col=v>thr?'var(--success)':v<-thr?'var(--danger)':'var(--g500)';
-    return `<span style="color:${col};font-weight:600">${s}${v.toFixed(dec)}</span>`;
+    const sg=v>0?'+':''; const col=v>thr?'var(--success)':v<-thr?'var(--danger)':'var(--g500)';
+    return `<span style="color:${col};font-weight:600">${sg}${v.toFixed(dec)}</span>`;
   };
 
-  // en-têtes colspan
   const BLU='background:#eff6ff;color:var(--g900)', GRN='background:#f0fdf4;color:var(--g900)', YEL='background:#fefce8;color:var(--g900)', PUR='background:#fdf4ff;color:var(--g900)';
   const BLU2='background:#f8faff', GRN2='background:#f0fff8', YEL2='background:#fffef0', PUR2='background:#faf5ff';
+
+  const sortVal = d => {
+    if(key==='nom') return (d.s.nom||'').toUpperCase();
+    if(key==='prenom') return (d.s.prenom||'').toUpperCase();
+    if(key==='classe') return d.classeShort;
+    return d[key] ?? (dir>0 ? Infinity : -Infinity);
+  };
+  const sorted = [...data].sort((a,b) => {
+    const av=sortVal(a), bv=sortVal(b);
+    return av<bv ? -dir : av>bv ? dir : 0;
+  });
+
+  const arr = k => {
+    if(k!==key) return '<span style="color:var(--g300);font-size:9px">⇅</span>';
+    return dir>0 ? '▲' : '▼';
+  };
+  const sh = (k,label,style='') =>
+    `<th onclick="p2cSortBy('${k}')" style="padding:4px 6px;border:1px solid var(--g200);cursor:pointer;user-select:none;${style}">${label} ${arr(k)}</th>`;
 
   let h = `<table style="width:100%;border-collapse:collapse;font-size:12px">
   <thead>
     <tr style="background:var(--g100)">
-      <th rowspan="2" style="padding:6px 8px;text-align:left;border:1px solid var(--g200);min-width:60px;max-width:90px">Nom</th>
-      <th rowspan="2" style="padding:6px 8px;text-align:left;border:1px solid var(--g200);min-width:50px;max-width:80px">Prénom</th>
-      <th rowspan="2" style="padding:6px 8px;text-align:center;border:1px solid var(--g200)">Cl.</th>
+      ${sh('nom','Nom','text-align:left;min-width:60px;max-width:90px')}
+      ${sh('prenom','Prénom','text-align:left;min-width:50px;max-width:80px')}
+      ${sh('classe','Cl.','text-align:center')}
       <th colspan="4" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${BLU}">Français</th>
       ${reforme?`<th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${GRN}">Mathématiques</th>`:''}
       <th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${YEL}">CC Première /${maxPts}</th>
       ${hasP2a&&hasP2e?`<th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${PUR}">Bac /2000</th>`:''}
     </tr>
     <tr style="background:var(--g100);font-size:11px;color:var(--g700)">
-      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">CC moy</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">Écrit</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">Oral</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">Δ</th>
-      ${reforme?`<th style="padding:4px 6px;border:1px solid var(--g200);${GRN}">Char CC</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${GRN}">SIEC</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${GRN}">Δ</th>`:''}
-      <th style="padding:4px 6px;border:1px solid var(--g200);${YEL}">Char</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${YEL}">SIEC</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${YEL}">Δ</th>
-      ${hasP2a&&hasP2e?`<th style="padding:4px 6px;border:1px solid var(--g200);${PUR}">P2a</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${PUR}">P2e</th>
-      <th style="padding:4px 6px;border:1px solid var(--g200);${PUR}">Δ</th>`:''}
+      <th colspan="3" style="border:1px solid var(--g200)"></th>
+      ${sh('fr_cc','CC moy',BLU)}
+      ${sh('fr_ecrit','Écrit',BLU)}
+      ${sh('fr_oral','Oral',BLU)}
+      ${sh('delta_fr','Δ',BLU)}
+      ${reforme?sh('maths_char','Char CC',GRN)+sh('maths_siec','SIEC',GRN)+sh('delta_maths','Δ',GRN):''}
+      ${sh('p2b_char','Char',YEL)}
+      ${sh('p2b_siec','SIEC',YEL)}
+      ${sh('delta_p2b','Δ',YEL)}
+      ${hasP2a&&hasP2e?sh('p2a_total','P2a',PUR)+sh('p2e_total','P2e',PUR)+sh('delta_p2ae','Δ',PUR):''}
     </tr>
   </thead>
   <tbody id="p2c-tbody">`;
 
-  data.forEach(d => {
+  sorted.forEach(d => {
     const op = d.matched ? '' : 'opacity:0.55;font-style:italic';
     h += `<tr style="${op}" data-classe="${d.classeShort}" data-nom="${(d.s.nom||'').toUpperCase()}">
       <td style="padding:4px 8px;border:1px solid var(--g200);color:var(--g900);max-width:90px;overflow:hidden;text-overflow:ellipsis">${d.s.nom||'—'}</td>
@@ -3800,6 +3804,13 @@ function p2cRenderTable(data) {
 
   h += '</tbody></table>';
   wrap.innerHTML = h;
+}
+
+function p2cSortBy(key) {
+  const cur = window._p2cSort || {key:'nom', dir:1};
+  window._p2cSort = {key, dir: cur.key===key ? -cur.dir : 1};
+  p2cRebuildTable();
+  p2cFilter();
 }
 
 function p2cFilter() {
