@@ -2880,42 +2880,25 @@ function renderP1C() {
   const hasD = S.spesProm.length > 0;
   const hasSpe = S.speAban.length > 0;
 
-  let html = `<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;align-items:flex-start">`;
-
-  // Card fichier D
-  html += `<div class="card" style="min-width:260px;flex:1">
-    <div style="font-size:12px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Spés promo (Charlemagne Premières)</div>
-    <div id="p1c-spesprom-status" style="margin-bottom:8px">
-      ${hasD ? `<div class="alert alert-success" style="margin:0">${S.charPrem.length} élèves chargés</div>` : ''}
-    </div>
-    <label class="drop-zone" style="padding:12px;cursor:pointer" ondragover="event.preventDefault();this.classList.add('drag-over')"
-      ondragleave="this.classList.remove('drag-over')"
-      ondrop="event.preventDefault();this.classList.remove('drag-over');p1cLoadSpesProm(event.dataTransfer.files[0])">
-      <input type="file" accept=".xlsx,.xls" style="display:none" onchange="p1cLoadSpesProm(this.files[0])">
-      📂 Glisser ou cliquer — Récapitulatif Charlemagne Premières
-    </label>
-  </div>`;
-
-  // Card fichier spés abandonnées
-  html += `<div class="card" style="min-width:260px;flex:1">
-    <div style="font-size:12px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Fichier Spés abandonnées (xlsx)</div>
-    <div id="p1c-spe-status" style="margin-bottom:8px">
-      ${hasSpe ? `<div class="alert alert-success" style="margin:0">${S.speAban.length} élèves chargés</div>` : ''}
-    </div>
-    <label class="drop-zone" style="padding:12px;cursor:pointer" ondragover="event.preventDefault();this.classList.add('drag-over')"
-      ondragleave="this.classList.remove('drag-over')"
-      ondrop="event.preventDefault();this.classList.remove('drag-over');p1cLoadSpeAban(event.dataTransfer.files[0])">
-      <input type="file" accept=".xlsx,.xls" style="display:none" onchange="p1cLoadSpeAban(this.files[0])">
-      📂 Glisser ou cliquer pour charger le fichier spés abandonnées
-    </label>
-  </div>`;
-
-  html += `</div>`;
-
   if (!hasD) {
-    el.innerHTML = html;
+    el.innerHTML = `<div class="alert alert-warning">Fichier D (Charlemagne Premières) non chargé — chargez-le dans l'onglet <strong>Année</strong>.</div>`;
     return;
   }
+
+  let html = `<div style="margin-bottom:16px">
+    <div class="card" style="max-width:420px">
+      <div style="font-size:12px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Fichier Spés abandonnées (xlsx)</div>
+      <div id="p1c-spe-status" style="margin-bottom:8px">
+        ${hasSpe ? `<div class="alert alert-success" style="margin:0">${S.speAban.length} élèves chargés</div>` : ''}
+      </div>
+      <label class="drop-zone" style="padding:12px;cursor:pointer" ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="event.preventDefault();this.classList.remove('drag-over');p1cLoadSpeAban(event.dataTransfer.files[0])">
+        <input type="file" accept=".xlsx,.xls" style="display:none" onchange="p1cLoadSpeAban(this.files[0])">
+        📂 Glisser ou cliquer pour charger le fichier spés abandonnées
+      </label>
+    </div>
+  </div>`;
 
   // Annotations sauvegardées
   const ann = p1cGetAnnotations();
@@ -3165,9 +3148,9 @@ function renderP2A() {
       Notes tronc commun non disponibles — rechargez le fichier dans Spé promo pour un calcul complet.
     </div>` : ''}
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
         <div class="card-title" style="margin:0">Projection bac /20 (Charlemagne Premières)</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center">
           <input type="text" placeholder="🔍 Élève…" id="p2a-filter" oninput="p2aFilter()"
             style="width:140px;padding:6px 10px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px">
           <select id="p2a-classe" onchange="p2aFilter()"
@@ -3710,8 +3693,8 @@ function p2cRenderTable(data) {
   let h = `<table style="width:100%;border-collapse:collapse;font-size:12px">
   <thead>
     <tr style="background:var(--g100)">
-      <th rowspan="2" style="padding:6px 8px;text-align:left;border:1px solid var(--g200);min-width:100px">Nom</th>
-      <th rowspan="2" style="padding:6px 8px;text-align:left;border:1px solid var(--g200);min-width:80px">Prénom</th>
+      <th rowspan="2" style="padding:6px 8px;text-align:left;border:1px solid var(--g200);min-width:60px;max-width:90px">Nom</th>
+      <th rowspan="2" style="padding:6px 8px;text-align:left;border:1px solid var(--g200);min-width:50px;max-width:80px">Prénom</th>
       <th rowspan="2" style="padding:6px 8px;text-align:center;border:1px solid var(--g200)">Cl.</th>
       <th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${BLU}">Français écrit</th>
       <th colspan="2" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${BLU}">Français oral</th>
@@ -3719,7 +3702,7 @@ function p2cRenderTable(data) {
       <th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${YEL}">CC Première /${maxPts}</th>
       ${hasP2a&&hasP2e?`<th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${PUR}">Bac /2000</th>`:''}
     </tr>
-    <tr style="background:var(--g100);font-size:11px;color:var(--g600)">
+    <tr style="background:var(--g100);font-size:11px;color:var(--g700)">
       <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">Char CC</th>
       <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">SIEC</th>
       <th style="padding:4px 6px;border:1px solid var(--g200);${BLU}">Δ</th>
@@ -3741,8 +3724,8 @@ function p2cRenderTable(data) {
   data.forEach(d => {
     const op = d.matched ? '' : 'opacity:0.55;font-style:italic';
     h += `<tr style="${op}" data-classe="${d.classeShort}" data-nom="${(d.s.nom||'').toUpperCase()}">
-      <td style="padding:4px 8px;border:1px solid var(--g200)">${d.s.nom||'—'}</td>
-      <td style="padding:4px 8px;border:1px solid var(--g200)">${d.s.prenom||''}</td>
+      <td style="padding:4px 8px;border:1px solid var(--g200);color:var(--g900);max-width:90px;overflow:hidden;text-overflow:ellipsis">${d.s.nom||'—'}</td>
+      <td style="padding:4px 8px;border:1px solid var(--g200);color:var(--g900);max-width:80px;overflow:hidden;text-overflow:ellipsis">${d.s.prenom||''}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center">${d.classeShort}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmt(d.fr_char)}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${BLU2}">${fmt(d.fr_ecrit_siec)}</td>
