@@ -1584,7 +1584,8 @@ function projectBac(student, spe1, spe2, isStmg=false, abanLp=null) {
   const n = student.notes || {};
   const reforme = parseInt(S.annee) >= 2027;
   const COEF = getT1Coef(isStmg);
-  const frE=n['T001']??10, frO=n['T002']??10;
+  const frCC=n['FR']??null;
+  const frE=n['T001']??frCC??10, frO=n['T002']??frCC??10;
   const nS1=n[spe1]??10, nS2=n[spe2]??10;
   const nMaths = n['LP014'] != null ? n['LP014'] : (n['LP006'] ?? 10);
   // TC Terminal TG : HG,EMC,LVA,LVB,Ens.sci,EPS (pas Maths) ; STMG : remplace Ens.sci par Maths
@@ -3038,7 +3039,7 @@ function renderP2A() {
     return;
   }
 
-  const ALL_SPE_LPS      = ['LP012','LP013','LP006','LP015','LP016','LP017','LP019','LP025'];
+  const ALL_SPE_LPS      = ['LP012','LP013','LP006','LP014','LP015','LP016','LP017','LP019','LP025'];
   const ALL_SPE_LPS_STMG = ['LP019','LP020']; // Éco-Droit + Management pour STMG (SGN est la spé arrêtée)
 
   // Préférer charPrem (notes complètes LP) — sinon convertir spesProm
