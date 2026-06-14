@@ -532,7 +532,7 @@ const CHA_MAP = [
   {patterns:['ANGLAIS'],                           code:'LP003'},
   {patterns:['ESPAGNOL LV2','ITALIEN LV2','ALLEMAND LV2','RUSSE LV2'], code:'LP004'},
   {patterns:['ENS. MORAL','ENS.MORAL','CIVIQUE'],  code:'LP002'},
-  {patterns:['FRANCAIS','FRANÇAIS'],               code:'FR'},
+  {patterns:['FRANCAIS','FRANÇAIS','FR.','FRANC.','LITT.FRANC','LITT FRANC'],  code:'FR'},
   {patterns:['ED.PHYSIQUE','EPS'],                 code:'EPS'},
   {patterns:['SCIENCES & TECHNIQUES'],             code:'ST'},
   {patterns:['SGN','SCIENCES GESTION','SC.GESTION','GESTION NUMER'], code:'LP025'},
@@ -1395,7 +1395,7 @@ async function parseCharlemagne(file, type) {
 
         // Trouver la ligne d'en-têtes (contient au moins 3 matières connues)
         let hdrIdx = -1;
-        const KNOWN = ['MATHEMATIQUES','HISTOIRE','ANGLAIS','PHILOSOPHIE','PHYSIQUE','SCIENCES'];
+        const KNOWN = ['MATHEMATIQUES','MATHS','HISTOIRE','ANGLAIS','PHILOSOPHIE','PHYSIQUE','SCIENCES','FRAN','SVT','NSI','SES'];
         for (let i=0; i<Math.min(8,rows.length); i++) {
           const rowStr = rows[i].map(v=>String(v).toUpperCase()).join('|');
           const hits = KNOWN.filter(k => rowStr.includes(k)).length;
