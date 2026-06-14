@@ -3762,20 +3762,20 @@ function p2cRebuildTable() {
       ${sh('classe','Cl.','text-align:center')}
       <th colspan="4" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${BLU}">Français</th>
       ${reforme?`<th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${GRN}">Mathématiques</th>`:''}
-      <th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${YEL}">CC Première /${maxPts}</th>
-      ${hasP2a&&hasP2e?`<th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${PUR}">Bac /2000</th>`:''}
+      <th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${YEL}">Points Première /${maxPts}</th>
+      ${hasP2a&&hasP2e?`<th colspan="3" style="padding:5px 6px;text-align:center;border:1px solid var(--g200);${PUR}">Simulation Bac /20</th>`:''}
     </tr>
     <tr style="background:var(--g100);font-size:11px;color:var(--g700)">
       <th colspan="3" style="border:1px solid var(--g200)"></th>
-      ${sh('fr_cc','CC moy',BLU)}
+      ${sh('fr_cc','CC Fr',BLU)}
       ${sh('fr_ecrit','Écrit',BLU)}
       ${sh('fr_oral','Oral',BLU)}
       ${sh('delta_fr','Δ',BLU)}
       ${reforme?sh('maths_char','Char CC',GRN)+sh('maths_siec','SIEC',GRN)+sh('delta_maths','Δ',GRN):''}
-      ${sh('p2b_char','Char',YEL)}
+      ${sh('p2b_char','CC points',YEL)}
       ${sh('p2b_siec','SIEC',YEL)}
       ${sh('delta_p2b','Δ',YEL)}
-      ${hasP2a&&hasP2e?sh('p2a_total','P2a',PUR)+sh('p2e_total','P2e',PUR)+sh('delta_p2ae','Δ',PUR):''}
+      ${hasP2a&&hasP2e?sh('p2a_total','Projection',PUR)+sh('p2e_total','Simulation',PUR)+sh('delta_p2ae','Δ',PUR):''}
     </tr>
   </thead>
   <tbody id="p2c-tbody">`;
@@ -3796,9 +3796,9 @@ function p2cRebuildTable() {
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${YEL2}">${fmt(d.p2b_char,1)}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${YEL2}">${fmt(d.p2b_siec,1)}</td>
       <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${YEL2}">${fmtD(d.delta_p2b,1,2)}</td>
-      ${hasP2a&&hasP2e?`<td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${PUR2}">${fmt(d.p2a_total,0)}</td>
-      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${PUR2}">${fmt(d.p2e_total,0)}</td>
-      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${PUR2}">${fmtD(d.delta_p2ae,0,5)}</td>`:''}
+      ${hasP2a&&hasP2e?`<td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${PUR2}">${fmt(d.p2a_total!=null?d.p2a_total/100:null,2)}</td>
+      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${PUR2}">${fmt(d.p2e_total!=null?d.p2e_total/100:null,2)}</td>
+      <td style="padding:4px 8px;border:1px solid var(--g200);text-align:center;${PUR2}">${fmtD(d.delta_p2ae!=null?d.delta_p2ae/100:null,2,0.1)}</td>`:''}
     </tr>`;
   });
 
