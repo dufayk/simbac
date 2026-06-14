@@ -223,6 +223,9 @@ tr:last-child td{border-bottom:none}
   <!-- ── PANEL : ANNÉE (MODULE 0) ── -->
   <div class="panel active" id="panel-annee">
     <div class="panel-title">Année de travail</div>
+    <div class="alert alert-info" style="margin-bottom:16px;font-size:12px">
+      Tous les fichiers chargés ici sont persistants : une fois déposés par l'administrateur, ils restent disponibles jusqu'à suppression manuelle et peuvent être remplacés à tout moment.
+    </div>
 
     <!-- Sélection année -->
     <div class="card">
@@ -246,18 +249,14 @@ tr:last-child td{border-bottom:none}
     <!-- Fichiers sources officiels (Admin) -->
     <div class="card" id="card-files" style="display:none">
       <div class="card-title">Fichiers sources officiels</div>
-      <div class="alert alert-info" style="margin-bottom:16px">
-        Ces fichiers sont persistants pour l'année sélectionnée. Une fois chargés par l'administrateur, ils restent disponibles pour tous les utilisateurs jusqu'à effacement manuel.
-      </div>
+
       <div class="card-grid" id="file-cards-grid"></div>
     </div>
 
     <!-- Fichiers Excel D-H -->
     <div class="card" id="card-excel-files" style="display:none">
       <div class="card-title">Fichiers Excel</div>
-      <div class="alert alert-info" style="margin-bottom:14px;font-size:12px">
-        Ces fichiers sont stockés localement pour l'année sélectionnée. Ils persistent jusqu'à suppression manuelle et peuvent être rechargés à tout moment.
-      </div>
+
       <div id="excel-files-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>
     </div>
 
@@ -2915,16 +2914,16 @@ function renderP1C() {
         📂 Glisser ou cliquer — fichier spés abandonnées
       </label>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;flex:1;min-width:200px">
-      <input type="text" id="p1c-search" placeholder="🔍 Rechercher un élève…" oninput="p1cFilter()"
-        style="width:100%;padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px;font-family:inherit;box-sizing:border-box">
+    <div style="display:flex;flex-direction:row;gap:8px;align-items:center;flex:1;min-width:200px;flex-wrap:nowrap">
+      <input type="text" id="p1c-search" placeholder="🔍 Rechercher…" oninput="p1cFilter()"
+        style="flex:1;min-width:100px;padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px;font-family:inherit">
       <select id="p1c-classe-filter" onchange="p1cFilter()"
-        style="width:100%;padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px">
+        style="padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px">
         <option value="">Toutes classes</option>
         ${p1cClasses.map(c=>`<option value="${c}">${c}</option>`).join('')}
       </select>
       <button onclick="document.getElementById('p1c-search').value='';document.getElementById('p1c-classe-filter').value='';p1cFilter()"
-        style="padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);background:#fff;cursor:pointer;font-size:13px">✕ Effacer</button>
+        style="white-space:nowrap;padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);background:#fff;cursor:pointer;font-size:13px">✕ Effacer</button>
     </div>
   </div>`;
   html += `<div style="overflow:auto;max-height:calc(100vh - 320px)" id="p1c-table-wrap">
