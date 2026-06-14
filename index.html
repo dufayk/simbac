@@ -3560,9 +3560,18 @@ function renderP2C() {
   if (!el) return;
 
   if (!S.premieres.length || !S.charPrem.length) {
+    const dbg = window._charPremDebug;
+    const dbgHtml = dbg ? `<div style="margin-top:12px;padding:10px;background:#fef9c3;border:1px solid #fde047;border-radius:6px;font-size:11px;font-family:monospace">
+      <b>Debug parseCharlemagne</b><br>
+      hdrIdx=${dbg.hdrIdx} | combinedNameCol=${dbg.combinedNameCol} | nomColWorks=${dbg.nomColWorks}<br>
+      hdrSample: ${dbg.hdrSample||'—'}<br>
+      firstRaw: ${dbg.firstRaw||'—'} | firstName: ${dbg.firstName||'—'}<br>
+      firstNotes: ${dbg.firstNotes||'—'}<br>
+      S.charPrem.length=${S.charPrem.length}
+    </div>` : '<div style="margin-top:8px;font-size:11px;color:#888">_charPremDebug absent (fichier D jamais chargé ?)</div>';
     el.innerHTML = renderStubHTML('⚖️','P-Comparaison',
       'Compare les notes SIEC (épreuves anticipées) et Charlemagne (CC) pour chaque élève : français écrit, français oral, CC Première /620, et projections /2000.',
-      'Fichiers A (SIEC Premières) + D (Charlemagne Premières)');
+      'Fichiers A (SIEC Premières) + D (Charlemagne Premières)') + dbgHtml;
     return;
   }
 
