@@ -2885,21 +2885,6 @@ function renderP1C() {
     return;
   }
 
-  let html = `<div style="margin-bottom:16px">
-    <div class="card" style="max-width:420px">
-      <div style="font-size:12px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Fichier Spés abandonnées (xlsx)</div>
-      <div id="p1c-spe-status" style="margin-bottom:8px">
-        ${hasSpe ? `<div class="alert alert-success" style="margin:0">${S.speAban.length} élèves chargés</div>` : ''}
-      </div>
-      <label class="drop-zone" style="padding:12px;cursor:pointer" ondragover="event.preventDefault();this.classList.add('drag-over')"
-        ondragleave="this.classList.remove('drag-over')"
-        ondrop="event.preventDefault();this.classList.remove('drag-over');p1cLoadSpeAban(event.dataTransfer.files[0])">
-        <input type="file" accept=".xlsx,.xls" style="display:none" onchange="p1cLoadSpeAban(this.files[0])">
-        📂 Glisser ou cliquer pour charger le fichier spés abandonnées
-      </label>
-    </div>
-  </div>`;
-
   // Annotations sauvegardées
   const ann = p1cGetAnnotations();
 
@@ -2916,17 +2901,31 @@ function renderP1C() {
   });
 
   const p1cClasses = [...new Set(eleves.map(e=>e.classe).filter(Boolean))].sort();
-  // Tableau
-  html += `<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <input type="text" id="p1c-search" placeholder="🔍 Rechercher un élève…" oninput="p1cFilter()"
-      style="width:240px;padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px;font-family:inherit">
-    <select id="p1c-classe-filter" onchange="p1cFilter()"
-      style="padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px">
-      <option value="">Toutes classes</option>
-      ${p1cClasses.map(c=>`<option value="${c}">${c}</option>`).join('')}
-    </select>
-    <button onclick="document.getElementById('p1c-search').value='';document.getElementById('p1c-classe-filter').value='';p1cFilter()"
-      style="padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);background:#fff;cursor:pointer;font-size:13px">✕ Effacer</button>
+
+  let html = `<div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap">
+    <div class="card" style="min-width:280px;flex:0 0 auto">
+      <div style="font-size:12px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Fichier Spés abandonnées (xlsx)</div>
+      <div id="p1c-spe-status" style="margin-bottom:8px">
+        ${hasSpe ? `<div class="alert alert-success" style="margin:0">${S.speAban.length} élèves chargés</div>` : ''}
+      </div>
+      <label class="drop-zone" style="padding:12px;cursor:pointer" ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="event.preventDefault();this.classList.remove('drag-over');p1cLoadSpeAban(event.dataTransfer.files[0])">
+        <input type="file" accept=".xlsx,.xls" style="display:none" onchange="p1cLoadSpeAban(this.files[0])">
+        📂 Glisser ou cliquer — fichier spés abandonnées
+      </label>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;flex:1;min-width:200px">
+      <input type="text" id="p1c-search" placeholder="🔍 Rechercher un élève…" oninput="p1cFilter()"
+        style="width:100%;padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px;font-family:inherit;box-sizing:border-box">
+      <select id="p1c-classe-filter" onchange="p1cFilter()"
+        style="width:100%;padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);font-size:13px">
+        <option value="">Toutes classes</option>
+        ${p1cClasses.map(c=>`<option value="${c}">${c}</option>`).join('')}
+      </select>
+      <button onclick="document.getElementById('p1c-search').value='';document.getElementById('p1c-classe-filter').value='';p1cFilter()"
+        style="padding:7px 12px;border:1px solid var(--g300);border-radius:var(--radius);background:#fff;cursor:pointer;font-size:13px">✕ Effacer</button>
+    </div>
   </div>`;
   html += `<div style="overflow:auto;max-height:calc(100vh - 320px)" id="p1c-table-wrap">
   <table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
@@ -4404,54 +4403,12 @@ function renderT1() {
   const stmgStatus= hasSTMG ? `<div class="alert alert-success" style="margin-top:6px">✓ ${S.charTermSTMG.length} élève(s) STMG chargé(s).</div>` : '';
   const goStatus  = hasGO   ? `<div class="alert alert-success" style="margin-top:6px">✓ ${Object.keys(S.grandOral).length} note(s) chargée(s).</div>` : `<div style="margin-top:6px;font-size:11px;color:var(--g500)">Si absent → proxy Fr oral utilisé</div>`;
 
-  el.innerHTML=`
-    <div class="card">
-      <div class="card-title">Charger les récapitulatifs Charlemagne</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:12px">
-        <div>
-          <div class="card-title" style="font-size:11px">Terminales Générales</div>
-          <div class="drop-zone" id="t1-dz-tg"
-            onclick="document.getElementById('t1-file-tg').click()" style="padding:14px">
-            <input type="file" id="t1-file-tg" accept=".xlsx,.xls"
-              onchange="t1LoadFile(this, false)">
-            <div style="font-size:22px;margin-bottom:4px">📊</div>
-            <div style="font-size:12px">${hasTG?'Remplacer (T1–T6)':'Charger (T1–T6)'}</div>
-          </div>
-          ${tgStatus}
-          ${hasTG?`<button class="btn btn-danger btn-sm" style="margin-top:6px" onclick="t1ClearTG()">🗑 Supprimer TG</button>`:''}
-        </div>
-        <div>
-          <div class="card-title" style="font-size:11px">Terminale STMG <span style="font-weight:400;color:var(--g500)">(optionnel)</span></div>
-          <div class="drop-zone" id="t1-dz-stmg"
-            onclick="document.getElementById('t1-file-stmg').click()" style="padding:14px">
-            <input type="file" id="t1-file-stmg" accept=".xlsx,.xls"
-              onchange="t1LoadFile(this, true)">
-            <div style="font-size:22px;margin-bottom:4px">📊</div>
-            <div style="font-size:12px">${hasSTMG?'Remplacer (TSTMG)':'Charger (TSTMG)'}</div>
-          </div>
-          ${stmgStatus}
-          ${hasSTMG?`<button class="btn btn-danger btn-sm" style="margin-top:6px" onclick="t1ClearSTMG()">🗑 Supprimer STMG</button>`:''}
-        </div>
-        <div>
-          <div class="card-title" style="font-size:11px">Grand oral blanc <span style="font-weight:400;color:var(--g500)">(optionnel)</span></div>
-          <div class="drop-zone" id="t1-dz-go"
-            onclick="document.getElementById('t1-file-go').click()" style="padding:14px">
-            <input type="file" id="t1-file-go" accept=".xlsx,.xls,.csv,.txt"
-              onchange="t1LoadGO(this)">
-            <div style="font-size:22px;margin-bottom:4px">🎤</div>
-            <div style="font-size:12px">${hasGO?'Remplacer':'Charger (Excel / CSV)'}</div>
-          </div>
-          ${goStatus}
-          ${hasGO?`<button class="btn btn-danger btn-sm" style="margin-top:6px" onclick="t1ClearGO()">🗑 Supprimer</button>`:''}
-        </div>
-      </div>
-      ${!hasTG?`<div class="alert alert-warning">⚠ Chargez au minimum le fichier Terminales Générales pour lancer la simulation.</div>`:''}
-    </div>
-    <div id="t1-sim-area"></div>`;
+  if (!hasTG) {
+    el.innerHTML = `<div class="alert alert-warning">Fichiers F/G (Charlemagne Terminales) non chargés — chargez-les dans l'onglet <strong>Année</strong>.</div><div id="t1-sim-area"></div>`;
+    return;
+  }
 
-  setupDrop('t1-dz-tg',   e=>{ const f=e.dataTransfer.files[0]; if(f) t1LoadFile({files:[f]},false); });
-  setupDrop('t1-dz-stmg', e=>{ const f=e.dataTransfer.files[0]; if(f) t1LoadFile({files:[f]},true);  });
-  setupDrop('t1-dz-go',   e=>{ const f=e.dataTransfer.files[0]; if(f) t1LoadGO({files:[f]});          });
+  el.innerHTML = `<div id="t1-sim-area"></div>`;
 
   if (hasTG || hasSTMG) t1RunSimulation();
 }
