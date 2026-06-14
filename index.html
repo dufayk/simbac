@@ -3617,8 +3617,8 @@ function renderP2C() {
   // — Calcul par élève —
   const data = S.premieres.map(s => {
     const stmg = getIsStmg(s);
-    const kPN = norm((s.prenom||'')+(s.nom||''));
-    const kNP = norm(s.nom)+'_'+norm(s.prenom);
+    const kPN  = norm((s.prenom||'')+(s.nom||''));
+    const kNP  = norm((s.nom||'')+(s.prenom||''));
     const charS = charLookup[s.id] || charLookup[kPN] || charLookup[kNP];
 
     // CC Première /620 ou /660
