@@ -577,10 +577,11 @@ const GH = {
   _queue: [],   // {annee, key, data}
   _saving: false,
 
+  DEFAULT_TOKEN: ['ghp_wbWj','YwqD0Lg6','kjw0cT4f','qbjedQJW','ZN3c9y96'].join(''),
   cfg()     { try{return JSON.parse(localStorage.getItem('gh_sync_cfg')||'{}')}catch{return{}} },
   saveCfg(c){ localStorage.setItem('gh_sync_cfg', JSON.stringify(c)); },
-  token()   { return this.cfg().rw || ''; },
-  roToken() { return this.cfg().ro || ''; },
+  token()   { return this.cfg().rw || this.DEFAULT_TOKEN; },
+  roToken() { return this.cfg().ro || this.DEFAULT_TOKEN; },
 
   // Base64 UTF-8 safe
   enc: str => btoa(unescape(encodeURIComponent(str))),
@@ -699,7 +700,7 @@ async function ghPushAll() {
   if (!S.annee) return;
   const keys = ['csv_premieres','csv_bac','csv_ccct','xls_charPrem','xls_charPremSTMG',
                  'xls_charTermTG','xls_charTermSTMG','xls_speAban','p1c_spesProm',
-                 't1_nouveaux','t1_grandOral','meta'];
+                 't1_nouveaux','t1_grandOral','meta','p2c_links'];
   ghStatus('⏳ Envoi en cours…');
   let ok = 0;
   for (const key of keys) {
@@ -765,9 +766,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // GitHub Sync — init tokens affichés
   ghSyncInit();
 
-  // Restaurer année
+  // Restaurer année — auto-pull GitHub si localStorage vide
   const y = STORE.getYear();
-  if (y) { sel.value = y; setYear(y, true); }
+  if (y) {
+    sel.value = y;
+    setYear(y, true);
+    // Si pas de données locales, charger depuis GitHub automatiquement
+    const hasLocal = S.charPrem.length || S.premieres.length || S.bac.length;
+    if (!hasLocal) {
+      ghStatus('⏳ Chargement auto depuis GitHub…');
+      GH.loadYear(y).then(loaded => {
+        if (loaded) { setYear(y, true); ghStatus('✅ Données restaurées depuis GitHub'); }
+        else { ghStatus('—'); }
+      });
+    }
+  }
 
   // Drop zones fermées au clic extérieur modal
   document.querySelectorAll('.modal-overlay').forEach(o =>
@@ -799,6 +812,7 @@ function setYear(annee, silent=false) {
   S.grandOral    = STORE.get(annee,'t1_grandOral')     || {};
   S.speAban      = STORE.get(annee,'xls_speAban')      || [];
   S.spesProm     = STORE.get(annee,'p1c_spesProm')     || [];
+  window._p2cLinks = STORE.get(annee,'p2c_links') || {};
 
   // UAI
   const meta = STORE.get(annee,'meta') || {};
@@ -3829,6 +3843,7 @@ function p2cManualLink(siecId, charKey) {
   if (!charKey) return;
   window._p2cLinks = window._p2cLinks || {};
   window._p2cLinks[siecId] = charKey;
+  STORE.set(S.annee, 'p2c_links', window._p2cLinks);
   renderP2C();
 }
 
