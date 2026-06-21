@@ -2038,6 +2038,13 @@ function p1cInputDebounced(elId, field, val) {
   clearTimeout(_p1cDebounce[k]);
   _p1cDebounce[k] = setTimeout(() => p1cSaveAnnotation(elId, field, val), 400);
 }
+function p1cModifNav(e, idx) {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  e.preventDefault();
+  const next = idx + (e.key === 'ArrowDown' ? 1 : -1);
+  const target = document.querySelector(`[data-modif-idx="${next}"]`);
+  if (target) { target.focus(); target.select(); }
+}
 
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  FICHIERS EXCEL D-H — gestion depuis panneau ANNÉE           ║
@@ -2279,7 +2286,9 @@ function renderP1C() {
       <td style="padding:4px 6px;text-align:center">
         <input type="text" value="${modif}" placeholder="—"
           style="width:80px;font-size:12px;border:1px solid var(--g200);border-radius:4px;padding:4px 6px;text-align:center;font-family:inherit"
-          oninput="p1cInputDebounced('${elId}','modif',this.value)">
+          data-modif-idx="${idx}"
+          oninput="p1cInputDebounced('${elId}','modif',this.value)"
+          onkeydown="p1cModifNav(event,${idx})">
       </td>
     </tr>`;
   });
