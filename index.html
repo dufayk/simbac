@@ -3455,36 +3455,7 @@ function p2ePrintPDF(id){
   </div>
   <div class="note">CC Première : notes officielles SIEC · Spés + EPS : Charlemagne · Autres Terminale : proxy SIEC</div>
   <script>window.onload=()=>{window.print();}<\/script>
-  <script>
-window.debugP2B = function() {
-  console.log('=== DEBUG P2B ===');
-  const data = window._p2bData;
-  if (!data || !data.length) { console.log('_p2bData vide — ouvrir le module Bac-Point Premiere dabord'); return; }
-  console.log('Nb eleves:', data.length);
-  // Stats spé abandonnée
-  const bySource = {MODIF:0, STOP:0, none:0};
-  data.forEach(s => { bySource[s.abanSource] = (bySource[s.abanSource]||0)+1; });
-  console.log('Sources:', JSON.stringify(bySource));
-  // 5 premiers eleves
-  data.slice(0,5).forEach(s => {
-    console.log(s.nom, s.prenom, '| abanLp:', s.abanLp, '| source:', s.abanSource, '| total:', s.total);
-  });
-  // Annotations localStorage
-  const storeKey = 'p1c_annotations';
-  let ann = null;
-  for (let i=0; i<localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.includes(storeKey)) { ann = JSON.parse(localStorage.getItem(k)||'{}'); console.log('Annotations key:', k, '| nb:', Object.keys(ann).length, '| ex cles:', Object.keys(ann).slice(0,3)); }
-  }
-  if (!ann) console.log('Aucune annotation p1c trouvee dans localStorage');
-  // speAban localStorage
-  for (let i=0; i<localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.includes('speAban')) { const d = JSON.parse(localStorage.getItem(k)||'[]'); console.log('speAban key:', k, '| nb:', d.length); if(d.length) console.log('1er:', JSON.stringify(d[0])); }
-  }
-};
-console.log('debugP2B() disponible');
-</script></body></html>`);
+  </body></html>`);
   w.document.close();
 }
 
@@ -4877,34 +4848,5 @@ function dlCSV(rows,filename) {
   a.download=filename; a.click();
 }
 </script>
-<script>
-window.debugP2B = function() {
-  console.log('=== DEBUG P2B ===');
-  const data = window._p2bData;
-  if (!data || !data.length) { console.log('_p2bData vide — ouvrir le module Bac-Point Premiere dabord'); return; }
-  console.log('Nb eleves:', data.length);
-  // Stats spé abandonnée
-  const bySource = {MODIF:0, STOP:0, none:0};
-  data.forEach(s => { bySource[s.abanSource] = (bySource[s.abanSource]||0)+1; });
-  console.log('Sources:', JSON.stringify(bySource));
-  // 5 premiers eleves
-  data.slice(0,5).forEach(s => {
-    console.log(s.nom, s.prenom, '| abanLp:', s.abanLp, '| source:', s.abanSource, '| total:', s.total);
-  });
-  // Annotations localStorage
-  const storeKey = 'p1c_annotations';
-  let ann = null;
-  for (let i=0; i<localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.includes(storeKey)) { ann = JSON.parse(localStorage.getItem(k)||'{}'); console.log('Annotations key:', k, '| nb:', Object.keys(ann).length, '| ex cles:', Object.keys(ann).slice(0,3)); }
-  }
-  if (!ann) console.log('Aucune annotation p1c trouvee dans localStorage');
-  // speAban localStorage
-  for (let i=0; i<localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.includes('speAban')) { const d = JSON.parse(localStorage.getItem(k)||'[]'); console.log('speAban key:', k, '| nb:', d.length); if(d.length) console.log('1er:', JSON.stringify(d[0])); }
-  }
-};
-console.log('debugP2B() disponible');
-</script></body>
+</body>
 </html>
