@@ -2614,10 +2614,11 @@ function renderP2B() {
     const key1 = s.id;
     const key2 = norm((s.prenom||'')+(s.nom||''));
     const key3 = s.raw ? norm(s.raw) : null;
-    const elAnn = p2bAnn[key1] || p2bAnn[key2] || (key3?p2bAnn[key3]:null) || {};
+    const key4 = norm((s.nom||'')+(s.prenom||'')); // cle P1C : norm(NOM+Prenom)
+    const elAnn = p2bAnn[key1] || p2bAnn[key2] || (key3?p2bAnn[key3]:null) || p2bAnn[key4] || {};
     const modifRaw = (elAnn.modif||'').trim();
     if (modifRaw) { const lp=SPE_TO_LP[normalizeSpeLabel(modifRaw)]; if(lp) return {lp,source:'MODIF'}; }
-    const stopLp = p2bSpeAbanMap[key1]||p2bSpeAbanMap[key2]||(key3?p2bSpeAbanMap[key3]:null);
+    const stopLp = p2bSpeAbanMap[key1]||p2bSpeAbanMap[key2]||(key3?p2bSpeAbanMap[key3]:null)||p2bSpeAbanMap[key4];
     if (stopLp) return {lp:stopLp, source:'STOP'};
     return {lp:null, source:'none'};
   }
