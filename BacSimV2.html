@@ -2635,6 +2635,9 @@ function renderP2B() {
     }
   });
   const p2bAnn = p1cGetAnnotations();
+  // Debug : inspecter les 2 premières entrées des maps
+  console.log('[P2B] speAban count:', S.speAban.length, '| p2bSpeAbanMap keys:', Object.keys(p2bSpeAbanMap).slice(0,4));
+  console.log('[P2B] p2bAnn keys:', Object.keys(p2bAnn).slice(0,4));
   function resolveAbanP2b(s) {
     const key1 = s.id;
     const key2 = norm((s.prenom||'')+(s.nom||''));
@@ -2642,6 +2645,8 @@ function renderP2B() {
     const key4 = norm((s.nom||'')+(s.prenom||'')); // clé P1C : norm("NOM Prénom")
     const elAnn = p2bAnn[key1] || p2bAnn[key2] || (key3?p2bAnn[key3]:null) || p2bAnn[key4] || {};
     const modifRaw = (elAnn.modif||'').trim();
+    // Debug pour les 3 premiers élèves
+    if (S.premieres.indexOf(s) < 3) console.log(`[P2B] ${s.nom} ${s.prenom} | key1=${key1} key2=${key2} key4=${key4} | annFound=${!!p2bAnn[key4]||!!p2bAnn[key2]||!!p2bAnn[key1]} modif="${modifRaw}" | stopFound=${!!(p2bSpeAbanMap[key4]||p2bSpeAbanMap[key2])}`);
     if (modifRaw) { const lp=SPE_TO_LP[normalizeSpeLabel(modifRaw)]; if(lp) return {lp,source:'MODIF'}; }
     const stopLp = p2bSpeAbanMap[key1]||p2bSpeAbanMap[key2]||(key3?p2bSpeAbanMap[key3]:null)||p2bSpeAbanMap[key4];
     if (stopLp) return {lp:stopLp, source:'STOP'};
