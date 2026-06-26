@@ -3455,7 +3455,40 @@ function p2ePrintPDF(id){
   </div>
   <div class="note">CC Première : notes officielles SIEC · Spés + EPS : Charlemagne · Autres Terminale : proxy SIEC</div>
   <script>window.onload=()=>{window.print();}<\/script>
-  </body></html>`);
+  <script>
+window.debugP2B = function() {
+  const ann = (typeof p1cGetAnnotations === 'function') ? p1cGetAnnotations() : {};
+  const annKeys = Object.keys(ann);
+  console.log('=== DEBUG P2B ===');
+  console.log('S.annee:', S.annee);
+  console.log('S.premieres.length:', S.premieres.length);
+  console.log('S.speAban.length:', S.speAban.length);
+  console.log('p1c_annotations nb eleves:', annKeys.length);
+  console.log('p1c_annotations 3 premieres cles:', annKeys.slice(0,3));
+  if (annKeys.length) console.log('1er annotation:', JSON.stringify(ann[annKeys[0]]));
+  // Spé aban map
+  const speMap = {};
+  S.speAban.forEach(e => {
+    const lp = SPE_TO_LP[e.speDeclaree] || null;
+    if (lp) { speMap[norm(e.nom+e.prenom)] = lp; speMap[norm(e.prenom+e.nom)] = lp; }
+  });
+  console.log('speAbanMap nb cles:', Object.keys(speMap).length);
+  console.log('speAbanMap 3 premieres cles:', Object.keys(speMap).slice(0,3));
+  // Premier eleve SIEC
+  if (S.premieres.length) {
+    const s = S.premieres[0];
+    const k1 = s.id;
+    const k2 = norm((s.prenom||'')+(s.nom||''));
+    const k4 = norm((s.nom||'')+(s.prenom||''));
+    console.log('--- 1er eleve SIEC ---');
+    console.log('nom:', s.nom, '| prenom:', s.prenom, '| id:', s.id);
+    console.log('key2 (prenom+nom):', k2, '| key4 (nom+prenom):', k4);
+    console.log('ann[k2]:', ann[k2], '| ann[k4]:', ann[k4]);
+    console.log('speMap[k2]:', speMap[k2], '| speMap[k4]:', speMap[k4]);
+  }
+};
+console.log('Debug P2B dispo : tapez debugP2B() dans la console');
+</script></body></html>`);
   w.document.close();
 }
 
@@ -4848,5 +4881,38 @@ function dlCSV(rows,filename) {
   a.download=filename; a.click();
 }
 </script>
-</body>
+<script>
+window.debugP2B = function() {
+  const ann = (typeof p1cGetAnnotations === 'function') ? p1cGetAnnotations() : {};
+  const annKeys = Object.keys(ann);
+  console.log('=== DEBUG P2B ===');
+  console.log('S.annee:', S.annee);
+  console.log('S.premieres.length:', S.premieres.length);
+  console.log('S.speAban.length:', S.speAban.length);
+  console.log('p1c_annotations nb eleves:', annKeys.length);
+  console.log('p1c_annotations 3 premieres cles:', annKeys.slice(0,3));
+  if (annKeys.length) console.log('1er annotation:', JSON.stringify(ann[annKeys[0]]));
+  // Spé aban map
+  const speMap = {};
+  S.speAban.forEach(e => {
+    const lp = SPE_TO_LP[e.speDeclaree] || null;
+    if (lp) { speMap[norm(e.nom+e.prenom)] = lp; speMap[norm(e.prenom+e.nom)] = lp; }
+  });
+  console.log('speAbanMap nb cles:', Object.keys(speMap).length);
+  console.log('speAbanMap 3 premieres cles:', Object.keys(speMap).slice(0,3));
+  // Premier eleve SIEC
+  if (S.premieres.length) {
+    const s = S.premieres[0];
+    const k1 = s.id;
+    const k2 = norm((s.prenom||'')+(s.nom||''));
+    const k4 = norm((s.nom||'')+(s.prenom||''));
+    console.log('--- 1er eleve SIEC ---');
+    console.log('nom:', s.nom, '| prenom:', s.prenom, '| id:', s.id);
+    console.log('key2 (prenom+nom):', k2, '| key4 (nom+prenom):', k4);
+    console.log('ann[k2]:', ann[k2], '| ann[k4]:', ann[k4]);
+    console.log('speMap[k2]:', speMap[k2], '| speMap[k4]:', speMap[k4]);
+  }
+};
+console.log('Debug P2B dispo : tapez debugP2B() dans la console');
+</script></body>
 </html>
