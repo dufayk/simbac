@@ -2610,6 +2610,8 @@ function renderP2B() {
     }
   });
   const p2bAnn = p1cGetAnnotations();
+  // Debug : expose pour inspection console
+  window._p2bDebug = { annKeys: Object.keys(p2bAnn).slice(0,5), speAbanCount: S.speAban.length, firstStudent: S.premieres[0] ? {nom:S.premieres[0].nom, prenom:S.premieres[0].prenom, key4:norm((S.premieres[0].nom||'')+(S.premieres[0].prenom||'')), key2:norm((S.premieres[0].prenom||'')+(S.premieres[0].nom||'')), annViaKey4: p2bAnn[norm((S.premieres[0].nom||'')+(S.premieres[0].prenom||''))], annViaKey2: p2bAnn[norm((S.premieres[0].prenom||'')+(S.premieres[0].nom||''))]} : null };
   function resolveAbanP2b(s) {
     const key1 = s.id;
     const key2 = norm((s.prenom||'')+(s.nom||''));
