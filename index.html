@@ -2242,6 +2242,10 @@ function renderP1C() {
       <div style="font-size:12px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Fichier Spés abandonnées (xlsx)</div>
       <div id="p1c-spe-status" style="margin-bottom:8px">
         ${hasSpe ? `<div class="alert alert-success" style="margin:0">${S.speAban.length} élèves chargés</div>` : ''}
+        ${hasSpe ? `<div style="font-size:10px;background:#fef9c3;padding:4px 6px;border-radius:3px;margin-top:4px;border:1px solid #fde047">
+          🔍 DEBUG: speAban[0]= nom="${(S.speAban[0]||{}).nom}" prenom="${(S.speAban[0]||{}).prenom}" speDeclaree="${(S.speAban[0]||{}).speDeclaree}"<br>
+          spesProm[0]= id="${(eleves[0]||{}).id}" | match="${!!(speAbanMap[(eleves[0]||{}).id])}" | matchCount=${eleves.filter(e=>speAbanMap[e.id]).length}/${eleves.length}
+        </div>` : '<div style="font-size:10px;color:red">DEBUG: speAban vide (hasSpe=false)</div>'}
       </div>
       <label class="drop-zone" style="padding:12px;cursor:pointer" ondragover="event.preventDefault();this.classList.add('drag-over')"
         ondragleave="this.classList.remove('drag-over')"
