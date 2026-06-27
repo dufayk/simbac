@@ -1903,9 +1903,11 @@ async function parseSpeAbanFile(file) {
           const prenom = String(row[prenomCol]||'').trim();
           const speRaw = String(row[speCol]||'').trim();
           if (!speRaw) continue; // pas de spé → ignorer
+          const numCand = String(row[1]||'').trim().replace(/^'/,''); // col B = N° Candidat
           out.push({
             nom: nomClean, prenom,
             id: norm(nomClean)+'_'+norm(prenom),
+            numCand,
             speDeclaree: normalizeSpeLabel(speRaw),
             speRaw,
           });
@@ -2670,6 +2672,7 @@ function renderP2B() {
     if (lp) {
       p2bSpeAbanMap[norm(e.nom+e.prenom)] = lp;
       p2bSpeAbanMap[norm(e.prenom+e.nom)] = lp;
+      if (e.numCand) p2bSpeAbanMap[e.numCand] = lp; // match par N° Candidat (fiable à 100%)
     }
   });
   const p2bAnn = p1cGetAnnotations();
@@ -2677,10 +2680,11 @@ function renderP2B() {
     const key1 = s.id;
     const key2 = norm((s.prenom||'')+(s.nom||''));
     const key3 = s.raw ? norm(s.raw) : null;
+    const keyNC = s.numCand || ''; // N° Candidat — match fiable avec speAban
     const elAnn = p2bAnn[key1] || p2bAnn[key2] || (key3?p2bAnn[key3]:null) || {};
     const modifRaw = (elAnn.modif||'').trim();
     if (modifRaw) { const lp=SPE_TO_LP[normalizeSpeLabel(modifRaw)]; if(lp) return {lp,source:'MODIF'}; }
-    const stopLp = p2bSpeAbanMap[key1]||p2bSpeAbanMap[key2]||(key3?p2bSpeAbanMap[key3]:null);
+    const stopLp = (keyNC&&p2bSpeAbanMap[keyNC]) || p2bSpeAbanMap[key1] || p2bSpeAbanMap[key2] || (key3?p2bSpeAbanMap[key3]:null);
     if (stopLp) return {lp:stopLp, source:'STOP'};
     return {lp:null, source:'none'};
   }
@@ -2693,12 +2697,8 @@ function renderP2B() {
     const isStmg = stmgKeys.has(s.id) || stmgKeys.has(norm((s.prenom||'')+(s.nom||''))) || /stmg/i.test(s.classe||'');
     const aban = isStmg ? {lp:null,source:'none'} : resolveAbanP2b(s);
     // undefined = auto-détection (première spé non-nulle) ; null = déclarée absente ; LP code = forcée
-    const forcedLP = aban.source !== 'none' ? aban.lp : undefined;
-    const c = calcP2b(s, isStmg, forcedLP);
-    const speDetail = c.detail?.find(d => d.label === 'Spécialité abandonnée');
-    const effectiveLp = aban.lp || speDetail?.col || null;
-    const effectiveSource = aban.source !== 'none' ? aban.source : (speDetail?.col ? 'auto' : 'none');
-    return { ...s, ...c, abanLp: effectiveLp, abanSource: effectiveSource };
+    const c = calcP2b(s, isStmg, aban.lp);
+    return { ...s, ...c, abanLp: aban.lp, abanSource: aban.source };
   });
   window._p2bData = data;
   window._p2bMeta = { maxPts: maxPts2b, mid: mid2b };
