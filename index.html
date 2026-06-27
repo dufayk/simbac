@@ -1872,7 +1872,7 @@ async function parseSpeAbanFile(file) {
         let hdrIdx = -1;
         for (let i=0; i<Math.min(15,rows.length); i++) {
           const r = rows[i].map(v=>String(v).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,''));
-          if (r.some(v=>v.includes('NOM DE FAMILLE')||v.includes('PRENOM')||v.includes('NOM CANDIDAT'))) { hdrIdx = i; break; }
+          if (r.some(v=>v.includes('NOM DE FAMILLE') || v==='NOM CANDIDAT')) { hdrIdx = i; break; }
         }
 
         // Colonnes par défaut (format SIEC "Liste spécialités suivies")
