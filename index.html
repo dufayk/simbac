@@ -2837,12 +2837,21 @@ function p2bShowDetail(id) {
   const midModal    = window._p2bMeta?.mid    || 310;
   document.getElementById('modal-detail-title').textContent =
     `${s.nom} ${s.prenom} — Points Première /${maxPtsModal} (CT réels)`;
-  let h = `<table style="width:100%"><thead>
+  const abanLabel = s.abanLp ? (LABELS[s.abanLp] || s.abanLp) : null;
+  const abanBadgeCls = s.abanSource==='MODIF' ? 'badge-blue' : s.abanSource==='STOP' ? 'badge-orange' : 'badge-gray';
+  let h = `<div style="font-size:12px;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <span>Spé abandonnée : <strong>${abanLabel || '--'}</strong></span>
+    <span class="badge ${abanBadgeCls}">${s.abanSource || 'none'}</span>
+    ${!abanLabel ? '<span style="color:#b91c1c;font-size:11px">⚠️ Non détectée — coeff 8 non calculé</span>' : ''}
+  </div>
+  <table style="width:100%"><thead>
     <tr><th>Épreuve</th><th>Note officielle</th><th>Coeff</th><th>Points</th></tr>
   </thead><tbody>`;
   s.detail.forEach(d => {
-    h += `<tr>
-      <td>${d.label}${d.col?` <small style="color:var(--g500)">(${d.col})</small>`:''}</td>
+    const isSpe = d.label === 'Spécialité abandonnée';
+    const rowStyle = isSpe ? 'background:#fff7ed' : '';
+    h += `<tr style="${rowStyle}">
+      <td>${d.label}${d.col?` <small style="color:var(--g500)">(${LABELS[d.col]||d.col})</small>`:''}</td>
       <td style="text-align:center">${d.note != null ? d.note.toFixed(2) : '--'}</td>
       <td style="text-align:center">${d.coeff}</td>
       <td style="text-align:center">${d.pts != null ? d.pts.toFixed(2) : '--'}</td>
