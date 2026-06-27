@@ -1855,7 +1855,9 @@ function normalizeSpeLabel(raw) {
   return raw; // inconnu, affiché tel quel
 }
 
-// Parser fichier spés abandonnées (col G=Nom, H=Prénom, N=Spé)
+// Parser fichier spés abandonnées SIEC — auto-détecte colonnes par en-tête
+// Format attendu : "Liste des spécialités suivies" Charlemagne/SIEC
+// Colonnes typiques : D=Nom de famille, F=Prénom(s), O=Enseignement de spécialité suivi
 async function parseSpeAbanFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1865,26 +1867,53 @@ async function parseSpeAbanFile(file) {
         const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-        const out = [];
-        // Trouver ligne d'en-tête (cherche "NOM" ou "ELEVE" dans les premières lignes)
-        let startRow = 1;
-        for (let i=0; i<Math.min(5,rows.length); i++) {
-          const r = rows[i].map(v=>String(v).toUpperCase());
-          if (r.some(v=>v.includes('NOM')||v.includes('ELEVE'))) { startRow = i+1; break; }
+
+        // Trouver ligne d'en-tête — cherche jusqu'à row 15
+        let hdrIdx = -1;
+        for (let i=0; i<Math.min(15,rows.length); i++) {
+          const r = rows[i].map(v=>String(v).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,''));
+          if (r.some(v=>v.includes('NOM DE FAMILLE')||v.includes('PRENOM')||v.includes('NOM CANDIDAT'))) { hdrIdx = i; break; }
         }
+
+        // Colonnes par défaut (format SIEC "Liste spécialités suivies")
+        let nomCol=3, prenomCol=5, speCol=14;
+        if (hdrIdx >= 0) {
+          const hdrs = rows[hdrIdx].map(v=>String(v).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,''));
+          let speColBest = -1;
+          hdrs.forEach((h,i) => {
+            if (h.includes('NOM DE FAMILLE') || h.includes('NOM CANDIDAT')) nomCol = i;
+            if (h.includes('PRENOM')) prenomCol = i;
+            // Préférer "ENSEIGNEMENT DE SPECIALITE" (suivi = spé abandonnée épreuve anticipée)
+            if (h.includes('ENSEIGNEMENT DE SPE') || h.includes('ENS DE SPE')) { speCol = i; speColBest = i; }
+            else if (speColBest < 0 && (h.includes('SPECIALITE') || h.includes('SPE ABANDONNEE') || h.includes('MATIERE ABANDONNEE'))) speCol = i;
+          });
+        }
+        const startRow = hdrIdx >= 0 ? hdrIdx+1 : 1;
+
+        const out = [];
         for (let i=startRow; i<rows.length; i++) {
           const row = rows[i];
-          const nom = String(row[6]||'').trim();   // col G (index 6)
-          if (!nom) continue;
-          const prenom = String(row[7]||'').trim(); // col H (index 7)
-          const speRaw = String(row[13]||'').trim();// col N (index 13)
+          const nom = String(row[nomCol]||'').trim();
+          if (!nom || nom.startsWith("'")) { // ignorer lignes entête ou vides
+            const testNom = nom.replace(/^'/,'');
+            if (!testNom || testNom.length < 2) continue;
+          }
+          const nomClean = nom.replace(/^'/,'');
+          const prenom = String(row[prenomCol]||'').trim();
+          const speRaw = String(row[speCol]||'').trim();
+          if (!speRaw) continue; // pas de spé → ignorer
           out.push({
-            nom, prenom,
-            id: norm(nom)+'_'+norm(prenom),
+            nom: nomClean, prenom,
+            id: norm(nomClean)+'_'+norm(prenom),
             speDeclaree: normalizeSpeLabel(speRaw),
             speRaw,
           });
         }
+        // Debug info
+        window._speAbanDebug = { hdrIdx, nomCol, prenomCol, speCol,
+          hdrSample: hdrIdx>=0 ? rows[hdrIdx].slice(0,17).map((v,i)=>`[${i}]"${String(v).slice(0,20)}"`).join(' ') : '—',
+          sample: out.slice(0,3).map(x=>`${x.nom} ${x.prenom} → "${x.speRaw}" → ${x.speDeclaree}`).join(' | ')
+        };
         resolve(out);
       } catch(err) { reject(err); }
     };
@@ -2003,10 +2032,17 @@ async function p1cLoadSpeAban(file) {
   statusEl.innerHTML = '<div class="alert alert-info">Chargement…</div>';
   try {
     const data = await parseSpeAbanFile(file);
-    if (!data.length) throw new Error('Aucune ligne trouvée. Vérifiez que les données commencent col G.');
+    const dbg = window._speAbanDebug || {};
+    const dbgHtml = `<details style="font-size:11px;background:#f1f5f9;padding:6px 8px;border-radius:4px;margin-top:6px">
+      <summary style="cursor:pointer;font-weight:700">Debug colonnes détectées</summary>
+      <p>hdrIdx: ${dbg.hdrIdx??'?'} | nomCol: ${dbg.nomCol??'?'} | prenomCol: ${dbg.prenomCol??'?'} | speCol: ${dbg.speCol??'?'}</p>
+      <p style="word-break:break-all"><b>En-têtes:</b> ${dbg.hdrSample??'—'}</p>
+      <p><b>Aperçu 3 premiers:</b> ${dbg.sample??'—'}</p>
+    </details>`;
+    if (!data.length) throw new Error('Aucune ligne trouvée. Vérifiez le format du fichier.' + dbgHtml);
     S.speAban = data;
     STORE.set(S.annee,'xls_speAban', data);
-    statusEl.innerHTML = `<div class="alert alert-success">${data.length} élèves chargés.</div>`;
+    statusEl.innerHTML = `<div class="alert alert-success">${data.length} élèves chargés.</div>` + dbgHtml;
     renderP1C();
   } catch(err) {
     statusEl.innerHTML = `<div class="alert alert-danger">Erreur : ${err.message}</div>`;
@@ -2635,20 +2671,14 @@ function renderP2B() {
     }
   });
   const p2bAnn = p1cGetAnnotations();
-  // Debug : inspecter les 2 premières entrées des maps
-  console.log('[P2B] speAban count:', S.speAban.length, '| p2bSpeAbanMap keys:', Object.keys(p2bSpeAbanMap).slice(0,4));
-  console.log('[P2B] p2bAnn keys:', Object.keys(p2bAnn).slice(0,4));
   function resolveAbanP2b(s) {
     const key1 = s.id;
     const key2 = norm((s.prenom||'')+(s.nom||''));
     const key3 = s.raw ? norm(s.raw) : null;
-    const key4 = norm((s.nom||'')+(s.prenom||'')); // clé P1C : norm("NOM Prénom")
-    const elAnn = p2bAnn[key1] || p2bAnn[key2] || (key3?p2bAnn[key3]:null) || p2bAnn[key4] || {};
+    const elAnn = p2bAnn[key1] || p2bAnn[key2] || (key3?p2bAnn[key3]:null) || {};
     const modifRaw = (elAnn.modif||'').trim();
-    // Debug pour les 3 premiers élèves
-    if (S.premieres.indexOf(s) < 3) console.log(`[P2B] ${s.nom} ${s.prenom} | key1=${key1} key2=${key2} key4=${key4} | annFound=${!!p2bAnn[key4]||!!p2bAnn[key2]||!!p2bAnn[key1]} modif="${modifRaw}" | stopFound=${!!(p2bSpeAbanMap[key4]||p2bSpeAbanMap[key2])}`);
     if (modifRaw) { const lp=SPE_TO_LP[normalizeSpeLabel(modifRaw)]; if(lp) return {lp,source:'MODIF'}; }
-    const stopLp = p2bSpeAbanMap[key1]||p2bSpeAbanMap[key2]||(key3?p2bSpeAbanMap[key3]:null)||p2bSpeAbanMap[key4];
+    const stopLp = p2bSpeAbanMap[key1]||p2bSpeAbanMap[key2]||(key3?p2bSpeAbanMap[key3]:null);
     if (stopLp) return {lp:stopLp, source:'STOP'};
     return {lp:null, source:'none'};
   }
