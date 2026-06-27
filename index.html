@@ -2692,8 +2692,13 @@ function renderP2B() {
   const data = S.premieres.map(s => {
     const isStmg = stmgKeys.has(s.id) || stmgKeys.has(norm((s.prenom||'')+(s.nom||''))) || /stmg/i.test(s.classe||'');
     const aban = isStmg ? {lp:null,source:'none'} : resolveAbanP2b(s);
-    const c = calcP2b(s, isStmg, aban.lp);
-    return { ...s, ...c, abanLp: aban.lp, abanSource: aban.source };
+    // undefined = auto-détection (première spé non-nulle) ; null = déclarée absente ; LP code = forcée
+    const forcedLP = aban.source !== 'none' ? aban.lp : undefined;
+    const c = calcP2b(s, isStmg, forcedLP);
+    const speDetail = c.detail?.find(d => d.label === 'Spécialité abandonnée');
+    const effectiveLp = aban.lp || speDetail?.col || null;
+    const effectiveSource = aban.source !== 'none' ? aban.source : (speDetail?.col ? 'auto' : 'none');
+    return { ...s, ...c, abanLp: effectiveLp, abanSource: effectiveSource };
   });
   window._p2bData = data;
   window._p2bMeta = { maxPts: maxPts2b, mid: mid2b };
@@ -2838,7 +2843,7 @@ function p2bShowDetail(id) {
   document.getElementById('modal-detail-title').textContent =
     `${s.nom} ${s.prenom} — Points Première /${maxPtsModal} (CT réels)`;
   const abanLabel = s.abanLp ? (LABELS[s.abanLp] || s.abanLp) : null;
-  const abanBadgeCls = s.abanSource==='MODIF' ? 'badge-blue' : s.abanSource==='STOP' ? 'badge-orange' : 'badge-gray';
+  const abanBadgeCls = s.abanSource==='MODIF' ? 'badge-blue' : s.abanSource==='STOP' ? 'badge-orange' : s.abanSource==='auto' ? 'badge-gray' : 'badge-gray';
   let h = `<div style="font-size:12px;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <span>Spé abandonnée : <strong>${abanLabel || '--'}</strong></span>
     <span class="badge ${abanBadgeCls}">${s.abanSource || 'none'}</span>
