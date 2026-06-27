@@ -1883,9 +1883,10 @@ async function parseSpeAbanFile(file) {
           hdrs.forEach((h,i) => {
             if (h.includes('NOM DE FAMILLE') || h.includes('NOM CANDIDAT')) nomCol = i;
             if (h.includes('PRENOM')) prenomCol = i;
-            // Préférer "ENSEIGNEMENT DE SPECIALITE" (suivi = spé abandonnée épreuve anticipée)
-            if (h.includes('ENSEIGNEMENT DE SPE') || h.includes('ENS DE SPE')) { speCol = i; speColBest = i; }
-            else if (speColBest < 0 && (h.includes('SPECIALITE') || h.includes('SPE ABANDONNEE') || h.includes('MATIERE ABANDONNEE'))) speCol = i;
+            // Col O = "Enseignement de spécialité suivie" = spé abandonnée (épreuve anticipée)
+            // Exclure "Choix enseignement" (col P) et "Enseignement 1/2/3/4" (cols K-N)
+            if ((h.includes('ENSEIGNEMENT DE SPE') || h.includes('ENS DE SPE')) && !h.includes('CHOIX')) { speCol = i; speColBest = i; }
+            else if (speColBest < 0 && (h.includes('SPE ABANDONNEE') || h.includes('MATIERE ABANDONNEE'))) speCol = i;
           });
         }
         const startRow = hdrIdx >= 0 ? hdrIdx+1 : 1;
